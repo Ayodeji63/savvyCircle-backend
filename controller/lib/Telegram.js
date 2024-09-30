@@ -37,12 +37,12 @@ function sendMessage(chatId, messageText) {
 
 function handleMessage(messageObj) {
     // Check if this is a new member join event
-    if (messageObj.new_chat_members && messageObj.new_chat_members.length > 0) {
+    if (messageObj?.new_chat_members && messageObj?.new_chat_members.length > 0) {
         return handleNewMember(messageObj);
     }
 
-    const messageText = messageObj.text || "";
-    const name = messageObj.from.first_name;
+    const messageText = messageObj?.text || "";
+    const name = messageObj?.from.first_name;
     console.log(name);
 
     if (messageText.charAt(0) === "/") {
@@ -55,18 +55,18 @@ function handleMessage(messageObj) {
             case "join":
                 return handleJoinGroup(messageObj)
             default:
-                return sendMessage(messageObj.chat.id, "I'm sorry, I didn't understand your command. Please try again");
+                return sendMessage(messageObj?.chat.id, "I'm sorry, I didn't understand your command. Please try again");
         }
     } else {
-        return sendMessage(messageObj.chat.id, messageText);
+        return sendMessage(messageObj?.chat.id, messageText);
     }
 }
 
 // TODO: show users groups
 
 function handleLaunchCommand(messageObj) {
-    const chatType = messageObj.chat.type;
-    const chatId = messageObj.chat.id;
+    const chatType = messageObj?.chat.type;
+    const chatId = messageObj?.chat.id;
 
 
     // In group chats, use the inline URL button
@@ -92,9 +92,9 @@ function handleLaunchCommand(messageObj) {
 }
 
 async function handleCreateGroup(messageObj) {
-    const groupName = messageObj.chat.title;
-    const chatId = messageObj.chat.id;
-    const name = messageObj.from.username;
+    const groupName = messageObj?.chat.title;
+    const chatId = messageObj?.chat.id;
+    const name = messageObj?.from.username;
     console.log(`This is name ${name}`);
 
     const userAddress = process.env.INITIAL_OWNER;
@@ -113,7 +113,7 @@ async function handleCreateGroup(messageObj) {
         });
 
         console.log(`Transaction receipt:`, receipt);
-        return sendMessage(messageObj.chat.id, `Group "${groupName}" created successfully! Transaction hash: ${receipt.transactionHash}`);
+        return sendMessage(messageObj?.chat.id, `Group "${groupName}" created successfully! Transaction hash: ${receipt.transactionHash}`);
     } catch (error) {
         console.error('Error creating group:', error);
 
@@ -125,18 +125,18 @@ async function handleCreateGroup(messageObj) {
             errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
         }
 
-        return sendMessage(messageObj.chat.id, errorMessage);
+        return sendMessage(messageObj?.chat.id, errorMessage);
     }
 }
 
 async function handleJoinGroup(messageObj) {
-    const groupName = messageObj.chat.title;
-    const chatId = messageObj.chat.id;
-    const name = messageObj.from.username;
+    const groupName = messageObj?.chat.title;
+    const chatId = messageObj?.chat.id;
+    const name = messageObj?.from.username;
     console.log(`This is name ${name}`);
 
 
-    // const userAddress = messageObj.from.id.toString();
+    // const userAddress = messageObj?.from.id.toString();
     try {
         // const nonce = await web3.eth.getTransactionCount(account.address);
         const user = await getUser(name);
@@ -153,16 +153,16 @@ async function handleJoinGroup(messageObj) {
         });
 
         console.log(`Transaction receipt:`, receipt);
-        return sendMessage(messageObj.chat.id, `You Join "${groupName}", check you app for more info! Transaction hash: ${receipt.transactionHash} `)
+        return sendMessage(messageObj?.chat.id, `You Join "${groupName}", check you app for more info! Transaction hash: ${receipt.transactionHash} `)
     } catch (error) {
         console.error('Error creating group:', error);
-        return sendMessage(messageObj.chat.id, "An error occurred while creating the group. Please try again.");
+        return sendMessage(messageObj?.chat.id, "An error occurred while creating the group. Please try again.");
     }
 }
 function handleNewMember(messageObj) {
-    const newMembers = messageObj.new_chat_members;
-    const chatId = messageObj.chat.id;
-    const chatTitle = messageObj.chat.title || "this group";
+    const newMembers = messageObj?.new_chat_members;
+    const chatId = messageObj?.chat.id;
+    const chatTitle = messageObj?.chat.title || "this group";
 
     newMembers.forEach(member => {
         const welcomeMessage = `
