@@ -27,10 +27,18 @@ const web_link = "https://savvy-circle.vercel.app/" // Make sure this is the cor
 
 
 function sendMessage(chatId, messageText) {
+    if (!messageText || messageText.trim() === '') {
+        console.error('Attempted to send an empty message');
+        return Promise.reject(new Error('Message text cannot be empty'));
+    }
+
     return axiosInstance.get("sendMessage", {
         chat_id: chatId,
         text: messageText,
-        parse_mode: 'HTML'  // This allows us to use HTML formatting in our messages
+        parse_mode: 'HTML'
+    }).catch(error => {
+        console.error('Error sending message:', error.response?.data || error.message);
+        throw error;
     });
 }
 
