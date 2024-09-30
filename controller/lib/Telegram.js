@@ -27,21 +27,24 @@ const web_link = "https://savvy-circle.vercel.app/" // Make sure this is the cor
 
 
 async function sendMessage(chatId, messageText) {
+    console.log(`Attempting to send message to chat ${chatId}: "${messageText}"`);
+
     if (!messageText || messageText.trim() === '') {
-        console.error('Attempted to send an empty message');
+        console.error(`Attempted to send an empty message to chat ${chatId}`);
         return Promise.reject(new Error('Message text cannot be empty'));
     }
 
-    try {
-        return await axiosInstance.get("sendMessage", {
-            chat_id: chatId,
-            text: messageText,
-            parse_mode: 'HTML'
-        });
-    } catch (error) {
-        console.error('Error sending message:', error.response?.data || error.message);
+    return axiosInstance.get("sendMessage", {
+        chat_id: chatId,
+        text: messageText,
+        parse_mode: 'HTML'
+    }).then(response => {
+        console.log(`Successfully sent message to chat ${chatId}`);
+        return response;
+    }).catch(error => {
+        console.error(`Error sending message to chat ${chatId}:`, error.response?.data || error.message);
         throw error;
-    }
+    });
 }
 
 
