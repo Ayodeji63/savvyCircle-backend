@@ -9,6 +9,8 @@ export default async function getUser(name) {
                 username: name
             }
         });
+        console.log(user);
+
         return user
     } catch (error) {
         console.log(error);

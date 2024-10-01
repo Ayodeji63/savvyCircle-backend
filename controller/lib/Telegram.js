@@ -15,7 +15,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: `${__dirname}/.env` });
 
 const rpcUrl = "https://sepolia-rpc.scroll.io";
-const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl, { timeout: 40000000 }));
+const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl, { timeout: 400000000 }));
 const account = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY);
 const contract = new web3.eth.Contract(abi, contractAddress);
 const tokenAddress = "0x8de23bbe29028d6e646950db8d99ee92c821b5bb"
@@ -60,20 +60,20 @@ function handleMessage(messageObj) {
     }
 
     const messageText = messageObj?.text || "";
-    const name = messageObj?.from.first_name;
+    const name = messageObj?.from?.first_name;
     console.log(name);
 
     if (messageText.charAt(0) === "/") {
-        const command = messageText.substr(1);
+        const command = messageText.split('@')[0].substr(1).toLowerCase();
         switch (command) {
             case "start":
-                return handleLaunchCommand(messageObj)
+                return handleLaunchCommand(messageObj);
             case "create":
                 return handleCreateGroup(messageObj);
             case "join":
-                return handleJoinGroup(messageObj)
+                return handleJoinGroup(messageObj);
             default:
-                return sendMessage(messageObj?.chat.id, "I'm sorry, I didn't understand your command. Please try again");
+                return sendMessage(messageObj?.chat.id, "Unknown command");
         }
     } else {
         return sendMessage(messageObj?.chat.id, messageText);
@@ -122,12 +122,16 @@ async function handleCreateGroup(messageObj) {
         const user = await getUser(name);
         const address = user.address;
         const nonce = await web3.eth.getTransactionCount(account.address);
-        const gasEstimate = await contract.methods.createGroup(groupName, userAddress, chatId).estimateGas({ from: account.address });
+        const gasEstimate = await contract.methods.createGroup(groupName, userAddress, 99).estimateGas({ from: account.address });
+        console.log(`Gas estimate is `, gasEstimate);
+
 
         const receipt = await contract.methods.createGroup(groupName, address, chatId).send({
             from: account.address,
-            gas: '7000000', // Increase gas estimate by 20%
-            nonce: nonce
+            gas: '1000000', // Increase gas estimate by 20%
+            nonce: nonce,
+            maxFeePerGas: '5000000',
+            maxPriorityFeePerGas: '2000000',
         });
 
         console.log(`Transaction receipt:`, receipt);
@@ -141,6 +145,8 @@ async function handleCreateGroup(messageObj) {
             errorMessage = "Transaction failed due to insufficient gas. Please try again with a higher gas limit.";
         } else if (error.message.includes("revert")) {
             errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
+        } else if (error.message.includes("already known")) {
+            errorMessage = "Transaction reverted. Group already created";
         }
 
         return sendMessage(messageObj?.chat.id, errorMessage);
@@ -152,8 +158,6 @@ async function handleJoinGroup(messageObj) {
     const chatId = messageObj?.chat.id;
     const name = messageObj?.from.username;
     console.log(`This is name ${name}`);
-
-
     // const userAddress = messageObj?.from.id.toString();
     try {
         // const nonce = await web3.eth.getTransactionCount(account.address);
@@ -166,7 +170,7 @@ async function handleJoinGroup(messageObj) {
 
         const receipt = await contract.methods.joinGroup(chatId, address).send({
             from: account.address,
-            gas: '7000000',
+            gas: '9000000',
             nonce: nonce // Explicitly set the nonce in the transaction
         });
 
