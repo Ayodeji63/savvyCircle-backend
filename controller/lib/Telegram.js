@@ -128,10 +128,8 @@ async function handleCreateGroup(messageObj) {
 
         const receipt = await contract.methods.createGroup(groupName, address, chatId).send({
             from: account.address,
-            gas: '1000000', // Increase gas estimate by 20%
+            gas: '9000000', // Increase gas estimate by 20%
             nonce: nonce,
-            maxFeePerGas: '5000000',
-            maxPriorityFeePerGas: '2000000',
         });
 
         console.log(`Transaction receipt:`, receipt);
