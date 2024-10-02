@@ -14,7 +14,8 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: `${__dirname}/.env` });
 
-const rpcUrl = "https://scroll-sepolia.g.alchemy.com/v2/3ui4skpB5vLfZtLX8pF7vyP3Vx7kHJ5t";
+// const rpcUrl = "https://scroll-sepolia.g.alchemy.com/v2/3ui4skpB5vLfZtLX8pF7vyP3Vx7kHJ5t";
+const rpcUrl = "https://sepolia-rpc.scroll.io";
 const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl, { timeout: 400000000 }));
 const account = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY);
 const contract = new web3.eth.Contract(abi, contractAddress);
@@ -75,8 +76,6 @@ function handleMessage(messageObj) {
             default:
                 return sendMessage(messageObj?.chat.id, "Unknown command");
         }
-    } else {
-        return sendMessage(messageObj?.chat.id, messageText);
     }
 }
 
@@ -203,5 +202,23 @@ If you need any help, just ask! Happy saving! 💰
         sendMessage(chatId, welcomeMessage);
     });
 }
+
+contract.events.MemberJoined({
+    fromBlock: 'latest'
+}, function (error, event) {
+    if (error) {
+        console.error('Error:', error);
+    } else {
+        console.log('Event received:', event);
+        // Process the event data
+        console.log('Event data:', event.returnValues);
+    }
+}).on('connected', function (subscriptionId) {
+    console.log('Subscription ID:', subscriptionId);
+})
+    .on('error', function (error) {
+        console.error('Subscription error:', error);
+    });
+
 
 export { handleMessage };
