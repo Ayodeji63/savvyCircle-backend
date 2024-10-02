@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: `${__dirname}/.env` });
 
-const rpcUrl = "https://sepolia-rpc.scroll.io";
+const rpcUrl = "https://scroll-sepolia.g.alchemy.com/v2/3ui4skpB5vLfZtLX8pF7vyP3Vx7kHJ5t";
 const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl, { timeout: 400000000 }));
 const account = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY);
 const contract = new web3.eth.Contract(abi, contractAddress);
@@ -119,23 +119,26 @@ async function handleCreateGroup(messageObj) {
 
     try {
 
-        const user = await getUser(name);
-        const address = user.address;
+        // const user = await getUser(name);
+        // const address = user.address;
+        console.log(`User address is `, account?.address);
+        const address = account?.address;
         const nonce = await web3.eth.getTransactionCount(account.address);
-        const gasEstimate = await contract.methods.createGroup(groupName, userAddress, 99).estimateGas({ from: account.address });
+        const gasEstimate = await contract.methods.createGroup(String(groupName), userAddress, Number(chatId)).estimateGas({ from: account.address });
         console.log(`Gas estimate is `, gasEstimate);
 
-
-        const receipt = await contract.methods.createGroup(groupName, address, chatId).send({
-            from: account.address,
-            gas: '9000000', // Increase gas estimate by 20%
+        const receipt = await contract.methods.createGroup(groupName, userAddress, Number(chatId)).send({
+            from: address,
+            gas: 10000000, // Increase gas estimate by 20%
             nonce: nonce,
         });
 
         console.log(`Transaction receipt:`, receipt);
         return sendMessage(messageObj?.chat.id, `Group "${groupName}" created successfully! Transaction hash: ${receipt.transactionHash}`);
     } catch (error) {
-        console.error('Error creating group:', error);
+        console.error('Error creating group:',);
+        console.error('Error creating group:', error.cause);
+
 
         let errorMessage = "An error occurred while creating the group. Please try again.";
 
@@ -143,8 +146,8 @@ async function handleCreateGroup(messageObj) {
             errorMessage = "Transaction failed due to insufficient gas. Please try again with a higher gas limit.";
         } else if (error.message.includes("revert")) {
             errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
-        } else if (error.message.includes("already known")) {
-            errorMessage = "Transaction reverted. Group already created";
+        } else if (String(error.cause).includes("already in group")) {
+            errorMessage = "Request reverted: Group already created";
         }
 
         return sendMessage(messageObj?.chat.id, errorMessage);
