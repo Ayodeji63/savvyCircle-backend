@@ -203,22 +203,7 @@ If you need any help, just ask! Happy saving! 💰
     });
 }
 
-contract.events.MemberJoined({
-    fromBlock: 'latest'
-}, function (error, event) {
-    if (error) {
-        console.error('Error:', error);
-    } else {
-        console.log('Event received:', event);
-        // Process the event data
-        console.log('Event data:', event.returnValues);
-    }
-}).on('connected', function (subscriptionId) {
-    console.log('Subscription ID:', subscriptionId);
-})
-    .on('error', function (error) {
-        console.error('Subscription error:', error);
-    });
+
 
 
 export { handleMessage };
