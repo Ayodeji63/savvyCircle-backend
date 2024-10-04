@@ -7,12 +7,14 @@ import { dirname } from 'path';
 import getUser from "./getUser.js";
 import { tokenAbi } from "../../token.js";
 import { Markup, Telegraf } from "telegraf";
+import { publicClient, walletClient } from "../../publicClient.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 dotenv.config({ path: `${__dirname}/.env` });
+
 
 // const rpcUrl = "https://scroll-sepolia.g.alchemy.com/v2/3ui4skpB5vLfZtLX8pF7vyP3Vx7kHJ5t";
 const rpcUrl = "https://sepolia-rpc.scroll.io";
@@ -25,6 +27,8 @@ web3.eth.accounts.wallet.add(account);
 const TOKEN = process.env.TOKEN;
 const bot = new Telegraf(TOKEN);
 const web_link = "https://savvy-circle.vercel.app/" // Make sure this is the correct Web App URL
+
+
 
 
 async function sendMessage(chatId, messageText) {
@@ -108,6 +112,8 @@ function handleLaunchCommand(messageObj) {
 
 }
 
+
+
 async function handleCreateGroup(messageObj) {
     const groupName = messageObj?.chat.title;
     const chatId = messageObj?.chat.id;
@@ -117,26 +123,26 @@ async function handleCreateGroup(messageObj) {
     const userAddress = process.env.INITIAL_OWNER;
 
     try {
-
-        // const user = await getUser(name);
-        // const address = user.address;
         console.log(`User address is `, account?.address);
         const address = account?.address;
-        const nonce = await web3.eth.getTransactionCount(account.address);
-        const gasEstimate = await contract.methods.createGroup(String(groupName), userAddress, Number(chatId)).estimateGas({ from: account.address });
-        console.log(`Gas estimate is `, gasEstimate);
 
-        const receipt = await contract.methods.createGroup(groupName, userAddress, Number(chatId)).send({
-            from: address,
-            gas: 10000000, // Increase gas estimate by 20%
-            nonce: nonce,
-        });
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'createGroup',
+            args: [groupName, userAddress, Number(chatId)]
+        })
 
-        console.log(`Transaction receipt:`, receipt);
-        return sendMessage(messageObj?.chat.id, `Group "${groupName}" created successfully! Transaction hash: ${receipt.transactionHash}`);
+        const hash = await walletClient.writeContract(request);
+        console.log(`Transaction receipt:`, hash);
+
+        if (!hash) {
+            return;
+        }
+        return sendMessage(messageObj?.chat.id, `Group "${groupName}" created successfully! Transaction hash ${hash}`);
     } catch (error) {
         console.error('Error creating group:',);
-        console.error('Error creating group:', error.cause);
+        console.error('Error creating group:', error);
 
 
         let errorMessage = "An error occurred while creating the group. Please try again.";
@@ -158,27 +164,60 @@ async function handleJoinGroup(messageObj) {
     const chatId = messageObj?.chat.id;
     const name = messageObj?.from.username;
     console.log(`This is name ${name}`);
-    // const userAddress = messageObj?.from.id.toString();
+
     try {
-        // const nonce = await web3.eth.getTransactionCount(account.address);
         const user = await getUser(name);
         const address = user.address;
         console.log(`Address is given as `, address);
 
         const nonce = await web3.eth.getTransactionCount(account.address);
 
-
-        const receipt = await contract.methods.joinGroup(chatId, address).send({
-            from: account.address,
-            gas: '9000000',
-            nonce: nonce // Explicitly set the nonce in the transaction
+        const data = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'getUserGroups',
+            args: [address]
         });
 
+        console.log(`Data is given as`, data);
+
+        if (data.includes(BigInt(chatId))) {
+            console.log(data.includes(BigInt(chatId)));
+            return sendMessage(messageObj?.chat.id, `${name}, you're already a member of this group. No need to join again!. Check your app for more details`);
+        }
+
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'joinGroup',
+            args: [chatId, address]
+        });
+
+        const hash = await walletClient.writeContract(request);
+        console.log(`Transaction hash:`, hash);
+
+        // Wait for the transaction to be mined
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
         console.log(`Transaction receipt:`, receipt);
-        return sendMessage(messageObj?.chat.id, `You Join "${groupName}", check you app for more info! Transaction hash: ${receipt.transactionHash} `)
+
+        return sendMessage(messageObj?.chat.id, `Welcome ${name}! You've successfully joined "${groupName}". Check your app for more details. Transaction hash: ${hash}`);
+
     } catch (error) {
-        console.error('Error creating group:', error);
-        return sendMessage(messageObj?.chat.id, "An error occurred while creating the group. Please try again.");
+        console.error('Error joining group:', error);
+
+        let errorMessage = `Oops! We encountered an issue while trying to add ${name} to the group. `;
+
+        if (error.message.includes("gas")) {
+            errorMessage += "It seems there might be a network congestion. Please try again in a few minutes.";
+        } else if (error.message.includes("revert")) {
+            errorMessage += "The operation couldn't be completed due to contract restrictions. This could be because the group is full or you don't meet certain criteria to join.";
+        } else if (String(error.cause).includes("already in group")) {
+            errorMessage += "It looks like you're already a member of this group. No need to join again!";
+        } else {
+            errorMessage += "We're not sure what went wrong. Please try again later or contact support if the issue persists.";
+        }
+
+        return sendMessage(messageObj?.chat.id, errorMessage);
     }
 }
 function handleNewMember(messageObj) {
@@ -192,8 +231,8 @@ function handleNewMember(messageObj) {
 
 We're excited to have you join our SavvyCircle community. Here's how you can get started:
 
-1. Type /start to begin your journey
-2. Use /lauch to launch the app
+1. Type /help for help
+2. Use /create to create a groip
 3. Use /join to become a part of an existing group
 
 If you need any help, just ask! Happy saving! 💰
@@ -204,6 +243,34 @@ If you need any help, just ask! Happy saving! 💰
 }
 
 
+function memberJoinedEvents() {
+    // First, check if the contract and the event exist
+    if (contract && contract.events && contract.events.MemberJoined) {
+        try {
+            const eventSubscription = contract.events.MemberJoined({
+                fromBlock: 'latest'
+            })
+                .on('data', function (event) {
+                    console.log('Event received:', event);
+                    console.log('Event data:', event.returnValues);
+                })
+                .on('changed', function (event) {
+                    // Remove event from local database
+                    console.log('Event changed:', event);
+                })
+                .on('error', function (error) {
+                    console.error('Subscription error:', error);
+                });
 
+            console.log('Subscription successful');
+        } catch (error) {
+            console.error('Error setting up event listener:', error);
+        }
+    } else {
+        console.error('Contract or MemberJoined event not found');
+    }
+}
+
+// memberJoinedEvents();
 
 export { handleMessage };

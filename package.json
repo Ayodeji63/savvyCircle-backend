@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --env-file=.env index.js",
-      "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +20,7 @@
     "nodemon": "^3.1.7",
     "prisma": "^5.20.0",
     "telegraf": "^4.16.3",
+    "viem": "^2.21.16",
     "web3": "^4.13.0"
   }
 }
