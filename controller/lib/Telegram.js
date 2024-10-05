@@ -8,6 +8,8 @@ import getUser from "./getUser.js";
 import { tokenAbi } from "../../token.js";
 import { Markup, Telegraf } from "telegraf";
 import { publicClient, walletClient } from "../../publicClient.js";
+import { formatEther } from "viem";
+import { inlineKeyboard } from "telegraf/markup";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +30,65 @@ const TOKEN = process.env.TOKEN;
 const bot = new Telegraf(TOKEN);
 const web_link = "https://savvy-circle.vercel.app/" // Make sure this is the correct Web App URL
 
+
+// Define the Etherscan base URL (change this if you're using a different network)
+const ETHERSCAN_BASE_URL = "https://sepolia.scrollscan.dev/tx/";
+
+const unwatch = publicClient.watchContractEvent({
+    address: contractAddress,
+    abi: abi,
+    eventName: 'SavingsDeposited',
+    onLogs: handleSavingsDepositedEvent
+});
+
+async function handleSavingsDepositedEvent(logs) {
+    for (const log of logs) {
+        const { groupId, member, amount } = log.args;
+        const transactionHash = log.transactionHash;
+
+        // Convert groupId to a regular number (removing the 'n' suffix for BigInt)
+        const chatId = Number(groupId);
+
+        // Format the amount (assuming it's in wei)
+        const formattedAmount = formatEther(amount);
+
+        // Create the message
+        const message = `
+<b>New Savings Deposit! 💰</b>
+
+Member: <code>${member}</code>
+Amount: <b>${formattedAmount} ETH</b>
+
+Great job on contributing to your savings goal! 🎉
+        `;
+
+        // Create the inline keyboard
+        // const keyboard = Markup.inlineKeyboard([
+        //     Markup.inlineKeyboard('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)
+        // ]).resize();
+
+        const inlineKeyboard = {
+            inlineKeyboard: [
+                [Markup.button.url('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)]
+            ]
+        }
+
+        // Send the message to the group
+        try {
+            // await sendMessage(chatId, message, { reply_markup: JSON.stringify(inlineKeyboard) });
+            return axiosInstance.post("sendMessage", {
+                chat_id: chatId,
+                text: message,
+                reply_markup: JSON.stringify(inlineKeyboard),
+                parse_mode: "HTML"
+            });
+        } catch (error) {
+            console.error(`Error sending message to group ${chatId}:`, error);
+        }
+    }
+}
+
+console.log("Watching for SavingsDeposited events...");
 
 
 
@@ -243,33 +304,14 @@ If you need any help, just ask! Happy saving! 💰
 }
 
 
-function memberJoinedEvents() {
-    // First, check if the contract and the event exist
-    if (contract && contract.events && contract.events.MemberJoined) {
-        try {
-            const eventSubscription = contract.events.MemberJoined({
-                fromBlock: 'latest'
-            })
-                .on('data', function (event) {
-                    console.log('Event received:', event);
-                    console.log('Event data:', event.returnValues);
-                })
-                .on('changed', function (event) {
-                    // Remove event from local database
-                    console.log('Event changed:', event);
-                })
-                .on('error', function (error) {
-                    console.error('Subscription error:', error);
-                });
+// const unwatch = publicClient.watchContractEvent({
+//     address: contractAddress,
+//     abi: abi,
+//     eventName: 'SavingsDeposited',
+//     onLogs: logs => console.log(logs)
+// })
 
-            console.log('Subscription successful');
-        } catch (error) {
-            console.error('Error setting up event listener:', error);
-        }
-    } else {
-        console.error('Contract or MemberJoined event not found');
-    }
-}
+// console.log(unwatch);
 
 // memberJoinedEvents();
 
