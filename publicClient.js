@@ -1,14 +1,28 @@
 import { createPublicClient, createWalletClient, http } from "viem";
-import { scrollSepolia } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
+// Ensure this is securely set in your environment variables
+const privateKey = process.env.PRIVATE_KEY;
+
+if (!privateKey) {
+    throw new Error("Private key is not set in environment variables");
+}
+
 export const publicClient = createPublicClient({
-    chain: scrollSepolia,
+    chain: baseSepolia,
     transport: http()
-})
-const account = privateKeyToAccount(process.env.PRIVATE_KEY);
+});
+
+export const account = privateKeyToAccount(privateKey);
+
 export const walletClient = createWalletClient({
     account,
-    chain: scrollSepolia,
+    chain: baseSepolia,
     transport: http()
-})
+});
+
+export const address = account.address;
+
+// Log the account address to verify it's set correctly
+console.log("Account address:", account.address);

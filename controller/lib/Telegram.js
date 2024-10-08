@@ -5,11 +5,12 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import getUser from "./getUser.js";
-import { tokenAbi } from "../../token.js";
+import { tokenAbi, tokenAddress } from "../../token.js";
 import { Markup, Telegraf } from "telegraf";
-import { publicClient, walletClient } from "../../publicClient.js";
-import { formatEther } from "viem";
+import { publicClient, walletClient, account } from "../../publicClient.js";
+import { formatEther, parseEther } from "viem";
 import { inlineKeyboard } from "telegraf/markup";
+import { json } from "express";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,41 +19,38 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: `${__dirname}/.env` });
 
 
-// const rpcUrl = "https://scroll-sepolia.g.alchemy.com/v2/3ui4skpB5vLfZtLX8pF7vyP3Vx7kHJ5t";
-const rpcUrl = "https://sepolia-rpc.scroll.io";
-const web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl, { timeout: 400000000 }));
-const account = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY);
-const contract = new web3.eth.Contract(abi, contractAddress);
-const tokenAddress = "0x8de23bbe29028d6e646950db8d99ee92c821b5bb"
-const token = new web3.eth.Contract(tokenAbi,)
-web3.eth.accounts.wallet.add(account);
+
 const TOKEN = process.env.TOKEN;
 const bot = new Telegraf(TOKEN);
 const web_link = "https://savvy-circle.vercel.app/" // Make sure this is the correct Web App URL
 
 
 // Define the Etherscan base URL (change this if you're using a different network)
-const ETHERSCAN_BASE_URL = "https://sepolia.scrollscan.dev/tx/";
+
+const ETHERSCAN_BASE_URL = "https://sepolia.base.dev/tx/";
+
+
 
 const unwatch = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'SavingsDeposited',
-    onLogs: handleSavingsDepositedEvent
+    onLogs: logs => {
+        console.log(logs)
+        handleSavingsDepositedEvent(logs)
+    }
 });
 
-async function handleSavingsDepositedEvent(logs) {
+console.log(unwatch);
+
+function handleSavingsDepositedEvent(logs) {
     for (const log of logs) {
         const { groupId, member, amount } = log.args;
         const transactionHash = log.transactionHash;
 
-        // Convert groupId to a regular number (removing the 'n' suffix for BigInt)
         const chatId = Number(groupId);
-
-        // Format the amount (assuming it's in wei)
         const formattedAmount = formatEther(amount);
 
-        // Create the message
         const message = `
 <b>New Savings Deposit! 💰</b>
 
@@ -62,37 +60,112 @@ Amount: <b>${formattedAmount} ETH</b>
 Great job on contributing to your savings goal! 🎉
         `;
 
-        // Create the inline keyboard
-        // const keyboard = Markup.inlineKeyboard([
-        //     Markup.inlineKeyboard('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)
-        // ]).resize();
+        const inlineKeyboard = Markup.inlineKeyboard([
+            [Markup.button.url('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)]
+        ]);
 
-        const inlineKeyboard = {
-            inlineKeyboard: [
-                [Markup.button.url('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)]
-            ]
-        }
-
-        // Send the message to the group
         try {
-            // await sendMessage(chatId, message, { reply_markup: JSON.stringify(inlineKeyboard) });
-            return axiosInstance.post("sendMessage", {
-                chat_id: chatId,
-                text: message,
-                reply_markup: JSON.stringify(inlineKeyboard),
-                parse_mode: "HTML"
-            });
+            sendMessage(chatId, message, inlineKeyboard);
         } catch (error) {
             console.error(`Error sending message to group ${chatId}:`, error);
         }
     }
 }
 
-console.log("Watching for SavingsDeposited events...");
+const repayLoanWatch = publicClient.watchContractEvent({
+    address: contractAddress,
+    abi: abi,
+    eventName: 'LoanRepayment',
+    onLogs: logs => {
+        try {
+            console.log(logs);
+
+            handleLoanRepaymentEvent(logs);
+        } catch (error) {
+            console.error('Error handling Loan repayments event:', error);
+        }
+    }
+});
 
 
 
-async function sendMessage(chatId, messageText) {
+// LoanDistributed
+
+
+export async function handleLoanRepaymentEvent(logs) {
+    for (const log of logs) {
+        const { groupId, borrower, amount } = log.args;
+        const transactionHash = log.transactionHash;
+
+        const chatId = Number(groupId);
+        const formattedAmount = formatEther(amount);
+
+        const message = `
+<b>💰💰 New Loan Repayment! 💰💰</b>
+
+Member: <code>${borrower}</code>
+Amount: <b>${formattedAmount} ETH</b>
+
+Great job on repaying back your loan! 🎉
+        `;
+
+        const inlineKeyboard = Markup.inlineKeyboard([
+            [Markup.button.url('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)]
+        ]);
+
+        try {
+            await sendMessage(chatId, message, inlineKeyboard);
+        } catch (error) {
+            console.error(`Error sending message to group ${chatId}:`, error);
+        }
+    }
+}
+
+
+const watchLoanDisburse = publicClient.watchContractEvent({
+    address: contractAddress,
+    abi: abi,
+    eventName: 'LoanDistributed',
+    onLogs: async (logs) => {
+        try {
+            await handleLoanDistrubuteEvent(logs);
+        } catch (error) {
+            console.error('Error handling SavingsDeposited event:', error);
+        }
+    }
+});
+
+
+export async function handleLoanDistrubuteEvent(logs) {
+    for (const log of logs) {
+        const { groupId, borrower, loanAmount, isFirstBatch } = log.args;
+        const transactionHash = log.transactionHash;
+
+        const chatId = Number(groupId);
+        const formattedAmount = formatEther(loanAmount);
+
+        const message = `
+<b>💰💰 New Loan Distrbuted! 💰💰</b>
+
+Member: <code>${borrower}</code>
+Amount: <b>${formattedAmount} ETH</b>
+
+Loans given to ${borrower}! 🎉
+        `;
+
+        const inlineKeyboard = Markup.inlineKeyboard([
+            [Markup.button.url('View Transaction', `${ETHERSCAN_BASE_URL}${transactionHash}`)]
+        ]);
+
+        try {
+            await sendMessage(chatId, message, inlineKeyboard);
+        } catch (error) {
+            console.error(`Error sending message to group ${chatId}:`, error);
+        }
+    }
+}
+
+export async function sendMessage(chatId, messageText, keyboard) {
     try {
         console.log(`Attempting to send message to chat ${chatId}: "${messageText}"`);
 
@@ -101,11 +174,17 @@ async function sendMessage(chatId, messageText) {
             return Promise.reject(new Error('Message text cannot be empty'));
         }
 
-        return axiosInstance.get("sendMessage", {
+        const payload = {
             chat_id: chatId,
             text: messageText,
             parse_mode: 'HTML'
-        }).then(response => {
+        };
+
+        if (keyboard) {
+            payload.reply_markup = JSON.stringify(keyboard);
+        }
+
+        return axiosInstance.post("sendMessage", payload).then(response => {
             console.log(`Successfully sent message to chat ${chatId}`);
             return response;
         }).catch(error => {
@@ -114,7 +193,6 @@ async function sendMessage(chatId, messageText) {
         });
     } catch (error) {
         console.log(error);
-
     }
 }
 
@@ -231,13 +309,11 @@ async function handleJoinGroup(messageObj) {
         const address = user.address;
         console.log(`Address is given as `, address);
 
-        const nonce = await web3.eth.getTransactionCount(account.address);
-
         const data = await publicClient.readContract({
             address: contractAddress,
             abi: abi,
             functionName: 'getUserGroups',
-            args: [address]
+            args: [String(address)]
         });
 
         console.log(`Data is given as`, data);
@@ -247,21 +323,37 @@ async function handleJoinGroup(messageObj) {
             return sendMessage(messageObj?.chat.id, `${name}, you're already a member of this group. No need to join again!. Check your app for more details`);
         }
 
-        const { request } = await publicClient.simulateContract({
-            address: contractAddress,
-            abi: abi,
-            functionName: 'joinGroup',
-            args: [chatId, address]
-        });
+        const tx = await publicClient.simulateContract({
+            address: tokenAddress,
+            abi: tokenAbi,
+            functionName: 'transfer',
+            args: [address, parseEther('100000')],
+            account
+        })
 
-        const hash = await walletClient.writeContract(request);
-        console.log(`Transaction hash:`, hash);
+        const txhash = await walletClient.writeContract(tx.request);
+        console.log(`Transaction hash:`, txhash);
 
-        // Wait for the transaction to be mined
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        console.log(`Transaction receipt:`, receipt);
+        setTimeout(async () => {
+            const { request } = await publicClient.simulateContract({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'joinGroup',
+                args: [chatId, address]
+            });
 
-        return sendMessage(messageObj?.chat.id, `Welcome ${name}! You've successfully joined "${groupName}". Check your app for more details. Transaction hash: ${hash}`);
+            const hash = await walletClient.writeContract(request);
+            console.log(`Transaction hash:`, hash);
+
+            // Wait for the transaction to be mined
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log(`Transaction receipt:`, receipt);
+
+            return sendMessage(messageObj?.chat.id, `Welcome ${name}! You've successfully joined "${groupName}". Check your app for more details. Transaction hash: ${hash}`);
+        }, 3000);
+
+
+
 
     } catch (error) {
         console.error('Error joining group:', error);
