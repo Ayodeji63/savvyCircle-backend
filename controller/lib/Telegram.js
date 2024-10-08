@@ -77,13 +77,11 @@ const repayLoanWatch = publicClient.watchContractEvent({
     abi: abi,
     eventName: 'LoanRepayment',
     onLogs: logs => {
-        try {
-            console.log(logs);
 
-            handleLoanRepaymentEvent(logs);
-        } catch (error) {
-            console.error('Error handling Loan repayments event:', error);
-        }
+        console.log(logs);
+
+        handleLoanRepaymentEvent(logs);
+
     }
 });
 
@@ -126,12 +124,9 @@ const watchLoanDisburse = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanDistributed',
-    onLogs: async (logs) => {
-        try {
-            await handleLoanDistrubuteEvent(logs);
-        } catch (error) {
-            console.error('Error handling SavingsDeposited event:', error);
-        }
+    onLogs: (logs) => {
+        handleLoanDistrubuteEvent(logs);
+
     }
 });
 
