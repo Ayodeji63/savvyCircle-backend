@@ -23,6 +23,13 @@ const bot = new Telegraf(process.env.TOKEN);
 
 
 
+bot.command('play', (ctx) => {
+    return ctx.reply('Click the link below:', Markup.inlineKeyboard([
+        [
+            Markup.button.url('Play', 'https://t.me/SavvyCircleBot/SavvyCircle')
+        ]
+    ]));
+});
 
 
 bot.action(/opt\d+/, async (ctx) => {
