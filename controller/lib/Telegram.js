@@ -27,9 +27,10 @@ const ETHERSCAN_BASE_URL = "https://sepolia.base.dev/tx/";
 bot.command('start', handleLaunchCommand);
 bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
-bot.on('new_chat_members', handleNewMember);
-bot.on('message', (ctx) => handleMessage(ctx.message));
 bot.command('savvy', handleSavvyCommand);
+
+bot.on('new_chat_members', handleNewMember);
+// bot.on('message', (ctx) => handleMessage(ctx.message));
 
 
 // Blockchain event listeners
@@ -277,27 +278,27 @@ If you need any help, just ask! Happy saving! 💰
     });
 }
 
-function handleMessage(message) {
-    if (message?.new_chat_members && message?.new_chat_members.length > 0) {
-        return handleNewMember({ message, chat: message.chat });
-    }
+// function handleMessage(message) {
+//     if (message?.new_chat_members && message?.new_chat_members.length > 0) {
+//         return handleNewMember({ message, chat: message.chat });
+//     }
 
-    const messageText = message?.text || "";
+//     const messageText = message?.text || "";
 
-    if (messageText.charAt(0) === "/") {
-        const command = messageText.split('@')[0].substr(1).toLowerCase();
-        switch (command) {
-            case "start":
-                return handleLaunchCommand({ chat: message.chat });
-            case "create":
-                return handleCreateGroup({ chat: message.chat, from: message.from });
-            case "join":
-                return handleJoinGroup({ chat: message.chat, from: message.from });
-            default:
-                return bot.telegram.sendMessage(message.chat.id, "Unknown command");
-        }
-    }
-}
+//     if (messageText.charAt(0) === "/") {
+//         const command = messageText.split('@')[0].substr(1).toLowerCase();
+//         switch (command) {
+//             case "start":
+//                 return handleLaunchCommand({ chat: message.chat });
+//             case "create":
+//                 return handleCreateGroup({ chat: message.chat, from: message.from });
+//             case "join":
+//                 return handleJoinGroup({ chat: message.chat, from: message.from });
+//             default:
+//                 return bot.telegram.sendMessage(message.chat.id, "Unknown command");
+//         }
+//     }
+// }
 
 function handleSavvyCommand(ctx) {
     return ctx.reply('Ready to get savvy with your finances? Click below to open SavvyCircle:',
@@ -307,4 +308,4 @@ function handleSavvyCommand(ctx) {
     );
 }
 
-export { handleMessage, sendMessage };
+export { sendMessage };
