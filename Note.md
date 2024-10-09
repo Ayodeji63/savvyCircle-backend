@@ -4,3 +4,4 @@
 // 4. Add name of Users to the events
 // 5. payments
 // 6. Configuration of Savings page
+// 7. Launch command should show bot.

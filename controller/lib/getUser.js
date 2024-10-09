@@ -2,7 +2,7 @@ import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient()
 
-export default async function getUser(name) {
+export async function getUser(name) {
     try {
         const user = await prisma.user.findUnique({
             where: {
@@ -14,6 +14,20 @@ export default async function getUser(name) {
         return user
     } catch (error) {
         console.log(error);
+
+    }
+}
+
+export async function getUserByAddress(address) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                address: address
+            }
+        })
+
+        return user
+    } catch (error) {
 
     }
 }

@@ -23,19 +23,6 @@ const bot = new Telegraf(process.env.TOKEN);
 
 
 
-bot.command('start', (ctx) => {
-    return ctx.reply('Welcome! Choose an option:', Markup.inlineKeyboard([
-        [
-            Markup.button.url('Option 1', 'https://example.com/option1'),
-            Markup.button.url('Option 2', 'https://example.com/option2')
-        ],
-        [
-            Markup.button.url('Option 3', 'https://example.com/option3'),
-            Markup.button.url('Option 4', 'https://example.com/option4')
-        ],
-        [Markup.button.url('More Info', 'https://example.com/info')]
-    ]));
-});
 
 
 bot.action(/opt\d+/, async (ctx) => {
