@@ -5,9 +5,27 @@ import { formatEther, parseEther } from "viem";
 import { publicClient, walletClient, account } from './publicClient.js';
 import { abi, contractAddress } from './contractAbi.js';
 import { tokenAbi, tokenAddress } from './token.js';
+import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
 const bot = new Telegraf(process.env.TOKEN);
+
+const PORT = process.env.PORT || 8000;
+
+const app = express();
+app.use(json());
+
+// Initialize the bot
+// const bot = createBot();
+
+
+app.get('/', (req, res) => {
+    res.send('Hello World!')
+})
+
+app.listen(PORT, () => {
+    console.log(`Example app listening on port ${port}`)
+})
 
 
 // bot commands
