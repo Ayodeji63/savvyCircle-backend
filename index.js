@@ -1,5 +1,5 @@
 import { Telegraf, Markup } from 'telegraf';
-import { getUser } from './controller/lib/getUser.js';
+import { getUser, getUserByAddress } from './controller/lib/getUser.js';
 // import { publicClient, walletClient, account } from "../../publicClient.js";
 import { formatEther, parseEther } from "viem";
 import { publicClient, walletClient, account } from './publicClient.js';
@@ -55,7 +55,6 @@ const unwatchLoanDistributed = publicClient.watchContractEvent({
     eventName: 'LoanDistributed',
     onLogs: logs => { handleLoanDistributedEvent(logs) }
 });
-const id = -1002340565448;
 
 // Event handlers
 async function handleSavingsDepositedEvent(logs) {
@@ -64,18 +63,18 @@ async function handleSavingsDepositedEvent(logs) {
         const transactionHash = log.transactionHash;
         const chatId = Number(groupId);
         const formattedAmount = formatEther(amount);
+        const user = await getUserByAddress(member);
 
         const message = `
 <b>New Savings Deposit! 💰</b>
 
-Member: <code>${member}</code>
-Amount: <b>${formattedAmount} ETH</b>
+Member: <code>${user.username}</code>
+Amount: <b>${formattedAmount} Naira</b>
 
 Great job on contributing to your savings goal! 🎉
         `;
-
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
+            [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
         ]);
 
         await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -88,12 +87,14 @@ async function handleLoanRepaymentEvent(logs) {
         const transactionHash = log.transactionHash;
         const chatId = Number(groupId);
         const formattedAmount = formatEther(amount);
+        const user = await getUserByAddress(borrower);
+
 
         const message = `
 <b>💰💰 New Loan Repayment! 💰💰</b>
 
-Member: <code>${borrower}</code>
-Amount: <b>${formattedAmount} ETH</b>
+Member: <code>${user.username}</code>
+Amount: <b>${formattedAmount} Naira</b>
 
 Great job on repaying back your loan! 🎉
         `;
@@ -112,14 +113,14 @@ async function handleLoanDistributedEvent(logs) {
         const transactionHash = log.transactionHash;
         const chatId = Number(groupId);
         const formattedAmount = formatEther(loanAmount);
-
+        const user = await getUserByAddress(borrower);
         const message = `
 <b>💰💰 New Loan Distributed! 💰💰</b>
 
-Member: <code>${borrower}</code>
-Amount: <b>${formattedAmount} ETH</b>
+Member: <h2>${user.username}</h2>
+Amount: <b>${formattedAmount} Naira</b>
 
-Loans given to ${borrower}! 🎉
+Loans given to ${user.username}! 🎉
         `;
 
         const keyboard = Markup.inlineKeyboard([
@@ -160,9 +161,12 @@ async function handleCreateGroup(ctx) {
 
         const hash = await walletClient.writeContract(request);
         console.log(`Transaction receipt:`, hash);
-
         if (hash) {
-            return ctx.reply(`Group "${groupName}" created successfully! Transaction hash ${hash}`);
+            return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
+                [
+                    Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${hash}`)
+                ]
+            ]));
         }
     } catch (error) {
         console.error('Error creating group:', error);
@@ -224,7 +228,11 @@ async function handleJoinGroup(ctx) {
             const hash = await walletClient.writeContract(request);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-            return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}". Check your app for more details. Transaction hash: ${hash}`);
+            return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
+                [
+                    Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${hash}`)
+                ]
+            ]))
         }, 3000);
 
     } catch (error) {
