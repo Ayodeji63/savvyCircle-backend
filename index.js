@@ -239,7 +239,16 @@ bot.action('close', async (ctx) => {
     await ctx.deleteMessage();
 });
 
-bot.launch();
+const launch = async () => {
+    try {
+        await bot.launch();
+    } catch (err) {
+        console.log("An error occured");
+
+    }
+}
+
+await launch();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
