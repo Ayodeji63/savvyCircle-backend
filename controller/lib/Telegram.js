@@ -124,7 +124,9 @@ const watchLoanDisburse = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanDistributed',
-    onLogs: (logs) => {
+    onLogs: logs => {
+        console.log(logs);
+
         handleLoanDistrubuteEvent(logs);
 
     }
