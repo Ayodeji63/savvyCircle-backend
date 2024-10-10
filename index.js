@@ -39,6 +39,7 @@ const unwatchSavingsDeposited = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'SavingsDeposited',
+    pollingInterval: 1_000,
     onLogs: logs => { handleSavingsDepositedEvent(logs) }
 });
 
@@ -46,6 +47,7 @@ const unwatchLoanRepayment = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanRepayment',
+    pollingInterval: 1_000,
     onLogs: logs => { handleLoanRepaymentEvent(logs) }
 });
 
@@ -53,6 +55,7 @@ const unwatchLoanDistributed = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanDistributed',
+    pollingInterval: 1_000,
     onLogs: logs => { handleLoanDistributedEvent(logs) }
 });
 
