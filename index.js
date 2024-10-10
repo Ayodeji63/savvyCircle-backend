@@ -132,10 +132,10 @@ Great job on repaying back your loan! 🎉
 async function handleLoanDistributedEvent(logs) {
     try {
         for (const log of logs) {
-            const { groupId, borrower, loanAmount } = log.args;
+            const { groupId, borrower, amount, isFirstBatch } = log.args;
             const transactionHash = log.transactionHash;
             const chatId = Number(groupId);
-            const formattedAmount = formatEther(String(loanAmount));
+            const formattedAmount = formatEther(String(amount));
             const user = await getUserByAddress(borrower);
             console.log(user);
             const message = `
