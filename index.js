@@ -39,20 +39,14 @@ const unwatchSavingsDeposited = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'SavingsDeposited',
-    onLogs: logs => {
-        console.log(logs)
-        handleSavingsDepositedEvent(logs)
-    }
+    onLogs: logs => { handleSavingsDepositedEvent(logs) }
 });
 
 const unwatchLoanRepayment = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanRepayment',
-    onLogs: logs => {
-        console.log(logs)
-        handleLoanRepaymentEvent(logs)
-    }
+    onLogs: logs => { handleLoanRepaymentEvent(logs) }
 });
 
 const unwatchLoanDistributed = publicClient.watchContractEvent({
@@ -103,13 +97,13 @@ async function handleLoanRepaymentEvent(logs) {
 
 
             const message = `
-    <b>💰💰 New Loan Repayment! 💰💰</b>
-    
-    Member: <code>${user ? user.username : borrower}</code>
-    Amount: <b>${formattedAmount} Naira</b>
-    
-    Great job on repaying back your loan! 🎉
-            `;
+<b>💰💰 New Loan Repayment! 💰💰</b>
+
+Member: <code>${user ? user.username : borrower}</code>
+Amount: <b>${formattedAmount} Naira</b>
+
+Great job on repaying back your loan! 🎉
+        `;
 
             const keyboard = Markup.inlineKeyboard([
                 [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
@@ -147,7 +141,8 @@ async function handleLoanDistributedEvent(logs) {
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
         }
     } catch (error) {
-        console.log(error)
+        console.log(error);
+
     }
 }
 
@@ -282,29 +277,18 @@ bot.action('close', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.deleteMessage();
 });
-
-// const launch = async () => {
-//     try {
-//     } catch (err) {
-//         console.log("An error occured");
-
-//     }
-// }
-
-// await launch();
-
-const webhookDomain = process.env.WEBHOOK_DOMAIN;
-const port = process.env.PORT || 8000;
-
-
-// Start webhook
 bot.launch({
     webhook: {
-        domain: webhookDomain,
-        port: port,
+        // Public domain for webhook; e.g.: example.com
+        domain: process.env.WEBHOOK_DOMAIN,
+
+        // Port to listen on; e.g.: 8080
+        port: PORT,
+
+        // Optional path to listen for.
+        // `bot.secretPathComponent()` will be used by default
     },
 });
-
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
