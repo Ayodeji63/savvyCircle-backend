@@ -40,7 +40,10 @@ const unwatchSavingsDeposited = publicClient.watchContractEvent({
     abi: abi,
     eventName: 'SavingsDeposited',
     pollingInterval: 1_000,
-    onLogs: logs => { handleSavingsDepositedEvent(logs) }
+    onLogs: logs => {
+        console.log(logs)
+        handleSavingsDepositedEvent(logs)
+    }
 });
 
 const unwatchLoanRepayment = publicClient.watchContractEvent({
@@ -48,7 +51,10 @@ const unwatchLoanRepayment = publicClient.watchContractEvent({
     abi: abi,
     eventName: 'LoanRepayment',
     pollingInterval: 1_000,
-    onLogs: logs => { handleLoanRepaymentEvent(logs) }
+    onLogs: logs => {
+        console.log(logs)
+        handleLoanRepaymentEvent(logs)
+    }
 });
 
 const unwatchLoanDistributed = publicClient.watchContractEvent({
@@ -56,7 +62,10 @@ const unwatchLoanDistributed = publicClient.watchContractEvent({
     abi: abi,
     eventName: 'LoanDistributed',
     pollingInterval: 1_000,
-    onLogs: logs => { handleLoanDistributedEvent(logs) }
+    onLogs: logs => {
+        console.log(logs)
+        handleLoanDistributedEvent(logs)
+    }
 });
 
 // Event handlers
