@@ -82,7 +82,7 @@ async function handleSavingsDepositedEvent(logs) {
 <b>New Savings Deposit! 💰</b>
 
 Member: <code>${user ? user.username : member}</code>
-Amount: <b>${formattedAmount} Naira</b>
+Amount: <b>${formattedAmount} NGNS</b>
 
 Great job on contributing to your savings goal! 🎉
         `;
@@ -112,7 +112,7 @@ async function handleLoanRepaymentEvent(logs) {
 <b>💰💰 New Loan Repayment! 💰💰</b>
 
 Member: <code>${user ? user.username : borrower}</code>
-Amount: <b>${formattedAmount} Naira</b>
+Amount: <b>${formattedAmount} NGNS</b>
 
 Great job on repaying back your loan! 🎉
         `;
@@ -141,8 +141,8 @@ async function handleLoanDistributedEvent(logs) {
             const message = `
     <b>💰💰 New Loan Distributed! 💰💰</b>
     
-    Member: <h2>${user ? user.username : borrower}</h2>
-    Amount: <b>${formattedAmount} Naira</b>
+    Member: <code>${user ? user.username : borrower}</code>
+    Amount: <b>${formattedAmount} NGNS</b>
     
     Loans given to ${user ? user.username : borrower}! 🎉
             `;
