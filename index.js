@@ -39,33 +39,46 @@ const unwatchSavingsDeposited = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'SavingsDeposited',
-    onLogs: logs => { handleSavingsDepositedEvent(logs) }
+    pollingInterval: 1_000,
+    batch: true,
+    onLogs: logs => {
+        console.log(logs)
+        handleSavingsDepositedEvent(logs)
+    }
 });
 
 const unwatchLoanRepayment = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanRepayment',
-    onLogs: logs => { handleLoanRepaymentEvent(logs) }
+    pollingInterval: 1_000,
+    batch: true,
+    onLogs: logs => {
+        console.log(logs)
+        handleLoanRepaymentEvent(logs)
+    }
 });
 
 const unwatchLoanDistributed = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanDistributed',
+    pollingInterval: 1_000,
+    batch: true,
     onLogs: logs => { handleLoanDistributedEvent(logs) }
 });
 
 // Event handlers
 async function handleSavingsDepositedEvent(logs) {
-    for (const log of logs) {
-        const { groupId, member, amount } = log.args;
-        const transactionHash = log.transactionHash;
-        const chatId = Number(groupId);
-        const formattedAmount = formatEther(amount);
-        const user = await getUserByAddress(member);
+    try {
+        for (const log of logs) {
+            const { groupId, member, amount } = log.args;
+            const transactionHash = log.transactionHash;
+            const chatId = Number(groupId);
+            const formattedAmount = formatEther(amount);
+            const user = await getUserByAddress(member);
 
-        const message = `
+            const message = `
 <b>New Savings Deposit! 💰</b>
 
 Member: <code>${user ? user.username : member}</code>
@@ -73,61 +86,74 @@ Amount: <b>${formattedAmount} Naira</b>
 
 Great job on contributing to your savings goal! 🎉
         `;
-        const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
-        ]);
+            const keyboard = Markup.inlineKeyboard([
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
+            ]);
 
-        await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+            await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+        }
+    } catch (error) {
+        console.log(error);
+
     }
 }
 
 async function handleLoanRepaymentEvent(logs) {
-    for (const log of logs) {
-        const { groupId, borrower, amount } = log.args;
-        const transactionHash = log.transactionHash;
-        const chatId = Number(groupId);
-        const formattedAmount = formatEther(amount);
-        const user = await getUserByAddress(borrower);
+    try {
+        for (const log of logs) {
+            const { groupId, borrower, amount } = log.args;
+            const transactionHash = log.transactionHash;
+            const chatId = Number(groupId);
+            const formattedAmount = formatEther(amount);
+            const user = await getUserByAddress(borrower);
 
 
-        const message = `
-<b>💰💰 New Loan Repayment! 💰💰</b>
+            const message = `
+    <b>💰💰 New Loan Repayment! 💰💰</b>
+    
+    Member: <code>${user ? user.username : borrower}</code>
+    Amount: <b>${formattedAmount} Naira</b>
+    
+    Great job on repaying back your loan! 🎉
+            `;
 
-Member: <code>${user ? user.username : borrower}</code>
-Amount: <b>${formattedAmount} Naira</b>
+            const keyboard = Markup.inlineKeyboard([
+                [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
+            ]);
 
-Great job on repaying back your loan! 🎉
-        `;
+            await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+        }
+    } catch (error) {
+        console.log(error);
 
-        const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
-        ]);
-
-        await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
     }
 }
 
 async function handleLoanDistributedEvent(logs) {
-    for (const log of logs) {
-        const { groupId, borrower, loanAmount } = log.args;
-        const transactionHash = log.transactionHash;
-        const chatId = Number(groupId);
-        const formattedAmount = formatEther(loanAmount);
-        const user = await getUserByAddress(borrower);
-        const message = `
-<b>💰💰 New Loan Distributed! 💰💰</b>
+    try {
+        for (const log of logs) {
+            const { groupId, borrower, loanAmount } = log.args;
+            const transactionHash = log.transactionHash;
+            const chatId = Number(groupId);
+            const formattedAmount = formatEther(loanAmount);
+            const user = await getUserByAddress(borrower);
+            const message = `
+    <b>💰💰 New Loan Distributed! 💰💰</b>
+    
+    Member: <h2>${user ? user.username : borrower}</h2>
+    Amount: <b>${formattedAmount} Naira</b>
+    
+    Loans given to ${user.username}! 🎉
+            `;
 
-Member: <h2>${user ? user.username : borrower}</h2>
-Amount: <b>${formattedAmount} Naira</b>
+            const keyboard = Markup.inlineKeyboard([
+                [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
+            ]);
 
-Loans given to ${user.username}! 🎉
-        `;
-
-        const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
-        ]);
-
-        await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+            await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
+        }
+    } catch (error) {
+        console.log(error)
     }
 }
 
@@ -273,7 +299,17 @@ bot.action('close', async (ctx) => {
 
 // await launch();
 
-bot.launch();
+const webhookDomain = process.env.WEBHOOK_DOMAIN;
+const port = process.env.PORT || 8000;
+
+
+// Start webhook
+bot.launch({
+    webhook: {
+        domain: webhookDomain,
+        port: port,
+    },
+});
 
 
 // Enable graceful stop

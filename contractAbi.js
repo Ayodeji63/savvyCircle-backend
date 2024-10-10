@@ -1,5 +1,6 @@
+import { Abi } from "viem";
 
-export const contractAddress = "0x87D1F83d84dD28ffF42Eed472d08b37dAc0b7e36";
+export const contractAddress = "0xf395e8a32a517568332a893cbce459b0346d1322";
 export const abi = [
     {
         type: "constructor",
@@ -310,6 +311,23 @@ export const abi = [
         stateMutability: "view",
     },
     {
+        type: "function",
+        name: "usersTotalSavings",
+        inputs: [{ name: "", type: "address", internalType: "address" }],
+        outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+        stateMutability: "view",
+    },
+    {
+        type: "function",
+        name: "withdrawFromGroup",
+        inputs: [
+            { name: "_groupId", type: "int256", internalType: "int256" },
+            { name: "_amount", type: "uint256", internalType: "uint256" },
+        ],
+        outputs: [],
+        stateMutability: "nonpayable",
+    },
+    {
         type: "event",
         name: "DepositMade",
         inputs: [
@@ -322,13 +340,13 @@ export const abi = [
             {
                 name: "member",
                 type: "address",
-                indexed: false,
+                indexed: true,
                 internalType: "address",
             },
             {
                 name: "amount",
                 type: "uint256",
-                indexed: false,
+                indexed: true,
                 internalType: "uint256",
             },
         ],
@@ -367,13 +385,13 @@ export const abi = [
             {
                 name: "borrower",
                 type: "address",
-                indexed: false,
+                indexed: true,
                 internalType: "address",
             },
             {
                 name: "amount",
                 type: "uint256",
-                indexed: false,
+                indexed: true,
                 internalType: "uint256",
             },
             {
@@ -398,13 +416,13 @@ export const abi = [
             {
                 name: "borrower",
                 type: "address",
-                indexed: false,
+                indexed: true,
                 internalType: "address",
             },
             {
                 name: "amount",
                 type: "uint256",
-                indexed: false,
+                indexed: true,
                 internalType: "uint256",
             },
         ],
@@ -442,13 +460,38 @@ export const abi = [
             {
                 name: "member",
                 type: "address",
-                indexed: false,
+                indexed: true,
                 internalType: "address",
             },
             {
                 name: "amount",
                 type: "uint256",
-                indexed: false,
+                indexed: true,
+                internalType: "uint256",
+            },
+        ],
+        anonymous: false,
+    },
+    {
+        type: "event",
+        name: "SavingsWithdraw",
+        inputs: [
+            {
+                name: "groupId",
+                type: "int256",
+                indexed: true,
+                internalType: "int256",
+            },
+            {
+                name: "owner",
+                type: "address",
+                indexed: true,
+                internalType: "address",
+            },
+            {
+                name: "amount",
+                type: "uint256",
+                indexed: true,
                 internalType: "uint256",
             },
         ],
