@@ -104,9 +104,9 @@ async function handleLoanRepaymentEvent(logs) {
             const { groupId, borrower, amount } = log.args;
             const transactionHash = log.transactionHash;
             const chatId = Number(groupId);
-            const formattedAmount = formatEther(amount);
+            const formattedAmount = formatEther(String(amount));
             const user = await getUserByAddress(borrower);
-
+            console.log(user)
 
             const message = `
 <b>💰💰 New Loan Repayment! 💰💰</b>
@@ -135,8 +135,9 @@ async function handleLoanDistributedEvent(logs) {
             const { groupId, borrower, loanAmount } = log.args;
             const transactionHash = log.transactionHash;
             const chatId = Number(groupId);
-            const formattedAmount = formatEther(loanAmount);
+            const formattedAmount = formatEther(String(loanAmount));
             const user = await getUserByAddress(borrower);
+            console.log(user);
             const message = `
     <b>💰💰 New Loan Distributed! 💰💰</b>
     
