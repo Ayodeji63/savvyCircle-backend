@@ -13,7 +13,7 @@ export const publicClient = createPublicClient({
     chain: baseSepolia,
     transport: http('https://base-sepolia.blockpi.network/v1/rpc/public', {
         batch: true,
-        pollingInterval: 1_000
+        pollingInterval: 3_500
     })
 });
 
