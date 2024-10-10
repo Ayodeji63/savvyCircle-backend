@@ -144,7 +144,7 @@ async function handleLoanDistributedEvent(logs) {
     Member: <h2>${user ? user.username : borrower}</h2>
     Amount: <b>${formattedAmount} Naira</b>
     
-    Loans given to ${user.username}! 🎉
+    Loans given to ${user ? user.username : borrower}! 🎉
             `;
 
             const keyboard = Markup.inlineKeyboard([

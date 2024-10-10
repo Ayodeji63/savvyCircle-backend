@@ -20,11 +20,12 @@ export async function getUser(name) {
 
 export async function getUserByAddress(address) {
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prisma.user.findFirst({
             where: {
                 address: address
             }
         })
+        console.log(user)
 
         return user
     } catch (error) {
