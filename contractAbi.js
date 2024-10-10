@@ -1,4 +1,3 @@
-import { Abi } from "viem";
 
 export const contractAddress = "0xf395e8a32a517568332a893cbce459b0346d1322";
 export const abi = [
