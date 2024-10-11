@@ -9,7 +9,7 @@ import cron from "node-cron";
 import https from "https";
 import ping from "ping";
 import fetch from 'node-fetch';
-import { job, secondJob } from './job.js';
+import { job } from './job.js';
 // import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
