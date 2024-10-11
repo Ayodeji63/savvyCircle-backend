@@ -169,13 +169,15 @@ async function handleCreateGroup(ctx) {
     const userAddress = process.env.INITIAL_OWNER;
 
     try {
-        const address = account?.address;
+        // const address = account?.address;
+        const user = await getUser(name);
+        const address = user.address;
 
         const { request } = await publicClient.simulateContract({
             address: contractAddress,
             abi: abi,
             functionName: 'createGroup',
-            args: [groupName, userAddress, Number(chatId)]
+            args: [groupName, address, Number(chatId)]
         });
 
         const hash = await walletClient.writeContract(request);
