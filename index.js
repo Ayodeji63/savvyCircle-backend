@@ -5,6 +5,9 @@ import { formatEther, parseEther } from "viem";
 import { publicClient, walletClient, account } from './publicClient.js';
 import { abi, contractAddress } from './contractAbi.js';
 import { tokenAbi, tokenAddress } from './token.js';
+import cron from "node-cron";
+import https from "https";
+import ping from "ping";
 // import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
@@ -12,20 +15,26 @@ const bot = new Telegraf(process.env.TOKEN);
 
 const PORT = process.env.PORT || 8000;
 
-// const app = express();
-// app.use(json());
 
-// Initialize the bot
-// const bot = createBot();
+cron.schedule('*/1 * * * *', async () => {
+    console.log('Running a task every 1 minute');
 
+    // Use just the hostname, not the full URL
+    const host = 'backend-savvycircle.onrender.com';
 
-// app.get('/', (req, res) => {
-//     res.send('Hello World!')
-// })
+    try {
+        const res = await ping.promise.probe(host);
+        if (res.alive) {
+            console.log('Server successfully pinged');
+        } else {
+            console.log('Failed to ping server');
+            console.log('Ping response:', res);
+        }
+    } catch (error) {
+        console.error('Error during ping:', error);
+    }
+});
 
-// app.listen(PORT, () => {
-//     console.log(`Example app listening on port ${PORT}`)
-// })
 
 
 // bot commands
