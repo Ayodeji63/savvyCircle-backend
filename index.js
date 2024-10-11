@@ -8,32 +8,14 @@ import { tokenAbi, tokenAddress } from './token.js';
 import cron from "node-cron";
 import https from "https";
 import ping from "ping";
+import fetch from 'node-fetch';
+import { job, secondJob } from './job.js';
 // import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
 const bot = new Telegraf(process.env.TOKEN);
 
 const PORT = process.env.PORT || 8000;
-
-
-cron.schedule('*/1 * * * *', async () => {
-    console.log('Running a task every 1 minute');
-
-    // Use just the hostname, not the full URL
-    const host = 'backend-savvycircle.onrender.com';
-
-    try {
-        const res = await ping.promise.probe(host);
-        if (res.alive) {
-            console.log('Server successfully pinged');
-        } else {
-            console.log('Failed to ping server');
-            console.log('Ping response:', res);
-        }
-    } catch (error) {
-        console.error('Error during ping:', error);
-    }
-});
 
 
 
@@ -311,6 +293,8 @@ bot.launch({
         // `bot.secretPathComponent()` will be used by default
     },
 });
+
+job.start();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
