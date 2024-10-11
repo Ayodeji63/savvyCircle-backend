@@ -5,11 +5,6 @@ import { formatEther, parseEther } from "viem";
 import { publicClient, walletClient, account } from './publicClient.js';
 import { abi, contractAddress } from './contractAbi.js';
 import { tokenAbi, tokenAddress } from './token.js';
-import cron from "node-cron";
-import https from "https";
-import ping from "ping";
-import fetch from 'node-fetch';
-import { job } from './job.js';
 // import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
@@ -296,7 +291,6 @@ bot.launch({
     },
 });
 
-job.start();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
