@@ -11,7 +11,10 @@ if (!privateKey) {
 
 export const publicClient = createPublicClient({
     chain: baseSepolia,
-    transport: http()
+    transport: http('https://base-sepolia.blockpi.network/v1/rpc/public', {
+        batch: true,
+        pollingInterval: 4_000
+    })
 });
 
 export const account = privateKeyToAccount(privateKey);

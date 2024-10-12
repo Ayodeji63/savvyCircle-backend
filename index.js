@@ -25,6 +25,7 @@ const unwatchSavingsDeposited = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'SavingsDeposited',
+    pollingInterval: 3_500,
     onLogs: logs => {
         console.log(logs)
         handleSavingsDepositedEvent(logs)
@@ -35,6 +36,7 @@ const unwatchLoanRepayment = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanRepayment',
+    pollingInterval: 3_500,
     onLogs: logs => {
         console.log(logs)
         handleLoanRepaymentEvent(logs)
@@ -45,6 +47,7 @@ const unwatchLoanDistributed = publicClient.watchContractEvent({
     address: contractAddress,
     abi: abi,
     eventName: 'LoanDistributed',
+    pollingInterval: 3_500,
     onLogs: logs => {
         console.log(logs)
         handleLoanDistributedEvent(logs)
