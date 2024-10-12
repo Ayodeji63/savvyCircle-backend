@@ -270,22 +270,25 @@ async function handleCreateGroup(ctx) {
 
         const hash = await walletClient.writeContract(request);
         console.log(`Transaction receipt:`, hash);
-        if (hash) {
-            const tx = await publicClient.simulateContract({
-                address: tokenAddress,
-                abi: tokenAbi,
-                functionName: 'transfer',
-                args: [address, parseEther('20000')],
-                account
-            });
+        setTimeout(async () => {
+            if (hash) {
+                const tx = await publicClient.simulateContract({
+                    address: tokenAddress,
+                    abi: tokenAbi,
+                    functionName: 'transfer',
+                    args: [address, parseEther('20000')],
+                    account
+                });
 
-            const hash2 = await walletClient.writeContract(tx.request);
-            console.log(hash2);
+                const hash2 = await walletClient.writeContract(tx.request);
+                console.log(hash2);
 
-            return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
-            ]));
-        }
+                return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
+                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
+                ]));
+            }
+        }, 2000);
+
     } catch (error) {
         console.error('Error creating group:', error);
 
