@@ -278,6 +278,10 @@ async function handleCreateGroup(ctx) {
                 args: [address, parseEther('20000')],
                 account
             });
+
+            const hash2 = await walletClient.writeContract(tx.request);
+            console.log(hash2);
+
             return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
                 [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
             ]));
@@ -377,17 +381,21 @@ async function handleJoinGroup(ctx) {
             ]));
         }
 
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'joinGroup',
+            args: [chatId, address]
+        });
 
+        const hash = await walletClient.writeContract(request);
+
+
+        // const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        // console.log(receipt);
 
 
         setTimeout(async () => {
-            const { request } = await publicClient.simulateContract({
-                address: contractAddress,
-                abi: abi,
-                functionName: 'joinGroup',
-                args: [chatId, address]
-            });
-
             const tx = await publicClient.simulateContract({
                 address: tokenAddress,
                 abi: tokenAbi,
@@ -397,12 +405,6 @@ async function handleJoinGroup(ctx) {
             });
 
             const txhash = await walletClient.writeContract(tx.request);
-            const receipt2 = await publicClient.waitForTransactionReceipt({ txhash });
-
-
-            const hash = await walletClient.writeContract(request);
-            const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
 
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
                 [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
