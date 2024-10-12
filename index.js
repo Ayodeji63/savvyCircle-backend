@@ -34,6 +34,8 @@ bot.on('new_chat_members', async (ctx) => {
   /create - Create a new savings group
   /join - Join an existing group
   /help - Show available commands and info
+  /mySavings - Show user total savings.
+  /groupSavings - Show group savings
   
   Let's get savvy with our finances together! 💰
       `;
@@ -377,7 +379,6 @@ async function handleJoinGroup(ctx) {
 
 
 
-        const txhash = await walletClient.writeContract(tx.request);
 
         setTimeout(async () => {
             const { request } = await publicClient.simulateContract({
@@ -395,9 +396,12 @@ async function handleJoinGroup(ctx) {
                 account
             });
 
+            const txhash = await walletClient.writeContract(tx.request);
+            const receipt2 = await publicClient.waitForTransactionReceipt({ txhash });
+
+
             const hash = await walletClient.writeContract(request);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
 
 
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
