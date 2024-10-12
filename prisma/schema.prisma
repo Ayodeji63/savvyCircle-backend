@@ -9,7 +9,22 @@ datasource db {
 }
 
 model User {
-  id       String @id
-  username String @unique
-  address  String
+  id          String        @id
+  username    String        @unique
+  address     String
+  Transaction Transaction[]
+}
+
+model Transaction {
+  id              String   @id
+  fromAddress     String
+  toAddress       String
+  amount          String
+  type            String
+  data            String?
+  transactionHash String   @unique
+  createdAt       DateTime @default(now())
+  status          String
+  userId          String
+  User            User     @relation(fields: [userId], references: [id])
 }
