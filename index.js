@@ -280,14 +280,18 @@ async function handleCreateGroup(ctx) {
                     account
                 });
 
-                const hash2 = await walletClient.writeContract(tx.request);
+                const hash2 = await walletClient.writeContract({
+                    ...tx.request,
+                    maxFeePerGas: parseGwei('20'), // Adjust as needed
+                    maxPriorityFeePerGas: parseGwei('2'), // Adjust as needed
+                });
                 console.log(hash2);
 
                 return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
                     [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
                 ]));
             }
-        }, 2000);
+        }, 3000);
 
     } catch (error) {
         console.error('Error creating group:', error);
@@ -297,12 +301,15 @@ async function handleCreateGroup(ctx) {
         if (error.message.includes("gas")) {
             errorMessage = "Transaction failed due to insufficient gas. Please try again with a higher gas limit.";
         } else if (error.message.includes("revert")) {
-            errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
-        } else if (String(error.cause).includes("already in group")) {
-            errorMessage = "Request reverted: Group already created";
+            if (error.shortMessage && error.shortMessage.includes("Already in group")) {
+                errorMessage = "This group has already been created. You can proceed to join it.";
+            } else {
+                errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
+            }
         }
 
         return ctx.reply(errorMessage);
+
     }
 }
 
