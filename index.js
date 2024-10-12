@@ -18,8 +18,8 @@ const PORT = process.env.PORT || 8000;
 bot.command('savvy', handleSavvyCommand);
 bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
-bot.command('my-savings', handleMyGroupSavings);
-bot.command('group-savings', handleGroupSavings);
+bot.command('mySavings', handleMyGroupSavings);
+bot.command('groupSavings', handleGroupSavings);
 
 bot.on('new_chat_members', async (ctx) => {
     const newMembers = ctx.message.new_chat_members;
@@ -203,6 +203,7 @@ async function handleGroupSavings(ctx) {
         });
 
         const totalSavings = formatEther(data);
+        console.log(`Total savings is`, totalSavings);
 
         // Get group member count
         // const memberCount = await publicClient.readContract({
@@ -305,6 +306,7 @@ async function handleMyGroupSavings(ctx) {
         });
 
         const totalSavings = formatEther(data);
+        console.log(`Total savings is`, totalSavings);
 
         const message = `
 <b>💰 Your Savings in ${groupName} 💰</b>
