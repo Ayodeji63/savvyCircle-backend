@@ -301,7 +301,7 @@ async function handleMyGroupSavings(ctx) {
         const data = await publicClient.readContract({
             address: contractAddress,
             abi: abi,
-            functionName: 'getMemberSavings',
+            functionName: 'getMemeberSavings',
             args: [Number(chatId), address]
         });
 
