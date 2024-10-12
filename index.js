@@ -18,6 +18,34 @@ const PORT = process.env.PORT || 8000;
 bot.command('savvy', handleSavvyCommand);
 bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
+bot.command('my-savings', handleMyGroupSavings);
+bot.command('group-savings', handleGroupSavings);
+
+bot.on('new_chat_members', async (ctx) => {
+    const newMembers = ctx.message.new_chat_members;
+    const botUser = await ctx.telegram.getMe();
+
+    if (newMembers.some(member => member.id === botUser.id)) {
+        const welcomeMessage = `
+  Hello everyone! 👋 I'm SavvyCircle Bot, here to help you manage your group savings and loans.
+  
+  Here are some commands to get you started:
+  /savvy - Open SavvyCircle app
+  /create - Create a new savings group
+  /join - Join an existing group
+  /help - Show available commands and info
+  
+  Let's get savvy with our finances together! 💰
+      `;
+
+        ctx.reply(welcomeMessage, {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+            ])
+        });
+    }
+});
 
 
 // Event listeners
@@ -73,7 +101,8 @@ Amount: <b>${formattedAmount} NGNS</b>
 Great job on contributing to your savings goal! 🎉
         `;
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
             ]);
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -104,7 +133,8 @@ Great job on repaying back your loan! 🎉
         `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
             ]);
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -134,7 +164,8 @@ async function handleLoanDistributedEvent(logs) {
             `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.base.dev/tx/${transactionHash}`)]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
             ]);
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -154,6 +185,64 @@ function handleSavvyCommand(ctx) {
     );
 }
 
+async function handleGroupSavings(ctx) {
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    try {
+        const user = await getUser(name);
+        const address = user.address;
+
+        // Get group total savings
+        const data = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'getGroupTotalSavings',
+            args: [Number(chatId)]
+        });
+
+        const totalSavings = formatEther(data);
+
+        // Get group member count
+        // const memberCount = await publicClient.readContract({
+        //     address: contractAddress,
+        //     abi: abi,
+        //     functionName: 'getGroupMemberCount',
+        //     args: [Number(chatId)]
+        // });
+
+        const message = `
+<b>📊 Group Savings Summary for ${groupName} 📊</b>
+
+Total Group Savings: <b>${totalSavings} NGNS</b>
+Number of Members: <b>${2}</b>
+
+Keep growing together! 🌱💰
+        `;
+
+        const keyboard = Markup.inlineKeyboard([
+            [Markup.button.url('View Details in SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+        ]);
+
+        await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+
+    } catch (error) {
+        console.error('Error fetching group savings:', error);
+
+        let errorMessage = "Oops! We encountered an issue while fetching the group savings information. ";
+
+        if (error.message.includes("group not found")) {
+            errorMessage += "It seems this group is not registered in our system. Use the /create command to set up a new savings group.";
+        } else if (error.message.includes("not a member")) {
+            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
+        } else {
+            errorMessage += "Please try again later or contact support if the issue persists.";
+        }
+
+        await ctx.reply(errorMessage);
+    }
+}
 
 async function handleCreateGroup(ctx) {
     const groupName = ctx.chat.title;
@@ -196,6 +285,56 @@ async function handleCreateGroup(ctx) {
         }
 
         return ctx.reply(errorMessage);
+    }
+}
+
+async function handleMyGroupSavings(ctx) {
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    try {
+        const user = await getUser(name);
+        const address = user.address;
+
+        const data = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'getMemberSavings',
+            args: [Number(chatId), address]
+        });
+
+        const totalSavings = formatEther(data);
+
+        const message = `
+<b>💰 Your Savings in ${groupName} 💰</b>
+
+Member: <code>${name}</code>
+Total Savings: <b>${totalSavings} NGNS</b>
+
+Keep up the great work! 🎉
+        `;
+
+        const keyboard = Markup.inlineKeyboard([
+            [Markup.button.url('View Details in SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+        ]);
+
+        await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+
+    } catch (error) {
+        console.error('Error fetching savings:', error);
+
+        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
+
+        if (error.message.includes("user not found")) {
+            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
+        } else if (error.message.includes("not a member")) {
+            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
+        } else {
+            errorMessage += "Please try again later or contact support if the issue persists.";
+        }
+
+        await ctx.reply(errorMessage);
     }
 }
 
