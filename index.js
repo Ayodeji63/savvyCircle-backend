@@ -270,7 +270,7 @@ async function handleCreateGroup(ctx) {
         console.log(`Transaction receipt:`, hash);
         if (hash) {
             return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
             ]));
         }
     } catch (error) {
@@ -318,7 +318,7 @@ Total Savings: <b>${totalSavings} NGNS</b>
 Keep up the great work! 🎉
         `;
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
 
         ]);
 
@@ -364,7 +364,7 @@ async function handleJoinGroup(ctx) {
 
         if (data.includes(BigInt(chatId))) {
             return ctx.reply(`${name}, you're already a member of this group. No need to join again! Check your app for more details`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
             ]));
         }
 
@@ -392,7 +392,7 @@ async function handleJoinGroup(ctx) {
 
 
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
             ]))
         }, 3000);
 
