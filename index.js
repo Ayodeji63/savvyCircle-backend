@@ -269,6 +269,13 @@ async function handleCreateGroup(ctx) {
         const hash = await walletClient.writeContract(request);
         console.log(`Transaction receipt:`, hash);
         if (hash) {
+            const tx = await publicClient.simulateContract({
+                address: tokenAddress,
+                abi: tokenAbi,
+                functionName: 'transfer',
+                args: [address, parseEther('20000')],
+                account
+            });
             return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
                 [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
             ]));
@@ -368,13 +375,7 @@ async function handleJoinGroup(ctx) {
             ]));
         }
 
-        const tx = await publicClient.simulateContract({
-            address: tokenAddress,
-            abi: tokenAbi,
-            functionName: 'transfer',
-            args: [address, parseEther('100000')],
-            account
-        });
+
 
         const txhash = await walletClient.writeContract(tx.request);
 
@@ -386,6 +387,14 @@ async function handleJoinGroup(ctx) {
                 args: [chatId, address]
             });
 
+            const tx = await publicClient.simulateContract({
+                address: tokenAddress,
+                abi: tokenAbi,
+                functionName: 'transfer',
+                args: [address, parseEther('20000')],
+                account
+            });
+
             const hash = await walletClient.writeContract(request);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
@@ -394,7 +403,7 @@ async function handleJoinGroup(ctx) {
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
                 [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
             ]))
-        }, 3000);
+        }, 2000);
 
     } catch (error) {
         console.error('Error joining group:', error);
