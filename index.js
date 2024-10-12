@@ -280,11 +280,7 @@ async function handleCreateGroup(ctx) {
                     account
                 });
 
-                const hash2 = await walletClient.writeContract({
-                    ...tx.request,
-                    maxFeePerGas: parseGwei('20'), // Adjust as needed
-                    maxPriorityFeePerGas: parseGwei('2'), // Adjust as needed
-                });
+                const hash2 = await walletClient.writeContract(tx.request);
                 console.log(hash2);
 
                 return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
