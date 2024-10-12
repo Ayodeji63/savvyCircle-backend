@@ -101,15 +101,16 @@ Amount: <b>${formattedAmount} NGNS</b>
 Great job on contributing to your savings goal! 🎉
         `;
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+
             ]);
+
+
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
         }
     } catch (error) {
         console.log(error);
-
     }
 }
 
@@ -133,8 +134,8 @@ Great job on repaying back your loan! 🎉
         `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+
             ]);
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -164,8 +165,8 @@ async function handleLoanDistributedEvent(logs) {
             `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)],
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+
             ]);
 
             await bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML', ...keyboard });
@@ -316,10 +317,11 @@ Total Savings: <b>${totalSavings} NGNS</b>
 
 Keep up the great work! 🎉
         `;
-
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Details in SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+            [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+
         ]);
+
 
         await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
 
@@ -358,9 +360,11 @@ async function handleJoinGroup(ctx) {
             args: [String(address)]
         });
 
+
+
         if (data.includes(BigInt(chatId))) {
             return ctx.reply(`${name}, you're already a member of this group. No need to join again! Check your app for more details`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
             ]));
         }
 
@@ -385,8 +389,10 @@ async function handleJoinGroup(ctx) {
             const hash = await walletClient.writeContract(request);
             const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+
+
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`)]
             ]))
         }, 3000);
 
