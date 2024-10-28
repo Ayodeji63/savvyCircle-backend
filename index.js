@@ -1,4 +1,4 @@
-import { Telegraf, Markup } from 'telegraf';
+import { Telegraf, Markup, session } from 'telegraf';
 import { getUser, getUserByAddress } from './controller/lib/getUser.js';
 // import { publicClient, walletClient, account } from "../../publicClient.js";
 import { formatEther, parseEther } from "viem";
