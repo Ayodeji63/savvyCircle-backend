@@ -253,10 +253,6 @@ async function handleCreateGroup(ctx) {
     const groupName = ctx.chat.title;
     const chatId = ctx.chat.id;
     const name = ctx.from.username;
-
-
-    const userAddress = process.env.INITIAL_OWNER;
-
     try {
         // const address = account?.address;
         const user = await getUser(name);
@@ -277,18 +273,35 @@ async function handleCreateGroup(ctx) {
                     address: tokenAddress,
                     abi: tokenAbi,
                     functionName: 'transfer',
-                    args: [address, parseEther('20000')],
+                    args: [address, parseEther('5000')],
                     account
                 });
 
+
                 const hash2 = await walletClient.writeContract(tx.request);
                 console.log(hash2);
-
-                return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
-                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
-                ]));
             }
-        }, 3000);
+        }, 2000);
+
+        setTimeout(async () => {
+            if (hash) {
+                const tx = await publicClient.simulateContract({
+                    address: usdtAddress,
+                    abi: tokenAbi,
+                    functionName: 'transfer',
+                    args: [address, parseEther('5000')],
+                    account
+                });
+
+
+                const hash2 = await walletClient.writeContract(tx.request);
+                console.log(hash2);
+            }
+        }, 2000);
+
+        return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
+        ]));
 
     } catch (error) {
         console.error('Error creating group:', error);
@@ -573,7 +586,7 @@ bot.action(/^approve_save_(.+)$/, async (ctx) => {
 Amount: ${amount} USDT
 Status: Processing
 
-Please complete the transaction in your wallet.
+Transaction completed.
 `;
 
         await ctx.editMessageText(message, { parse_mode: 'HTML' });
@@ -646,10 +659,26 @@ async function handleJoinGroup(ctx) {
 
             const txhash = await walletClient.writeContract(tx.request);
 
-            return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
-            ]))
+
         }, 2000);
+
+        setTimeout(async () => {
+            const tx = await publicClient.simulateContract({
+                address: usdtAddress,
+                abi: tokenAbi,
+                functionName: 'transfer',
+                args: [address, parseEther('20000')],
+                account
+            });
+
+            const txhash = await walletClient.writeContract(tx.request);
+
+
+        }, 2000);
+
+        return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
+        ]))
 
     } catch (error) {
         console.error('Error joining group:', error);

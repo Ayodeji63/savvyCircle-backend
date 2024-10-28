@@ -1,5 +1,5 @@
 import { createPublicClient, createWalletClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, liskSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 // Ensure this is securely set in your environment variables
@@ -10,8 +10,8 @@ if (!privateKey) {
 }
 
 export const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http('https://base-sepolia.blockpi.network/v1/rpc/public', {
+    chain: liskSepolia,
+    transport: http('https://lisk-sepolia.drpc.org', {
         batch: true,
         pollingInterval: 4_000
     })
@@ -21,7 +21,7 @@ export const account = privateKeyToAccount(privateKey);
 
 export const walletClient = createWalletClient({
     account,
-    chain: baseSepolia,
+    chain: liskSepolia,
     transport: http()
 });
 
