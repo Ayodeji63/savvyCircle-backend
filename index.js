@@ -20,6 +20,7 @@ bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
 bot.command('mySavings', handleMyGroupSavings);
 bot.command('groupSavings', handleGroupSavings);
+bot.command('savingToken', handleSavingToken);
 
 bot.on('new_chat_members', async (ctx) => {
     const newMembers = ctx.message.new_chat_members;
@@ -338,6 +339,54 @@ Keep up the great work! 🎉
         `;
         const keyboard = Markup.inlineKeyboard([
             [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+
+        ]);
+
+
+        await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+
+    } catch (error) {
+        console.error('Error fetching savings:', error);
+
+        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
+
+        if (error.message.includes("user not found")) {
+            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
+        } else if (error.message.includes("not a member")) {
+            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
+        } else {
+            errorMessage += "Please try again later or contact support if the issue persists.";
+        }
+
+        await ctx.reply(errorMessage);
+    }
+}
+
+
+async function handleSavingToken(ctx) {
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    try {
+        const user = await getUser(name);
+        const address = user.address;
+
+        const data = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'getMemeberSavings',
+            args: [Number(chatId), address]
+        });
+
+        const totalSavings = formatEther(data);
+        console.log(`Total savings is`, totalSavings);
+
+        const message = `
+<b>💰 Select an option for ${groupName} saving token 💰</b>
+        `;
+        const keyboard = Markup.inlineKeyboard([
+            [Markup.button.text('Naira (NGNS)')], [Markup.button.text('US Dollar (USDT)')]
 
         ]);
 
