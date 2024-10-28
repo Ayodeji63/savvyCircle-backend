@@ -253,65 +253,116 @@ async function handleCreateGroup(ctx) {
     const groupName = ctx.chat.title;
     const chatId = ctx.chat.id;
     const name = ctx.from.username;
+
     try {
-        // const address = account?.address;
         const user = await getUser(name);
         const address = user.address;
 
+        if (!address) {
+            throw new Error('User address not found');
+        }
+
+        // Get current gas price and add a premium
+        const gasPrice = await publicClient.getGasPrice();
+        const gasPriceWithPremium = gasPrice * 120n / 100n; // 20% premium
+
+        // Create group transaction with proper gas configuration
         const { request } = await publicClient.simulateContract({
             address: contractAddress,
             abi: abi,
             functionName: 'createGroup',
-            args: [groupName, address, Number(chatId)]
+            args: [groupName, address, Number(chatId)],
+            account: walletClient.account,
+            gas: await publicClient.estimateContractGas({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'createGroup',
+                args: [groupName, address, Number(chatId)],
+                account: walletClient.account
+            }),
+            maxFeePerGas: gasPriceWithPremium,
+            maxPriorityFeePerGas: gasPriceWithPremium / 2n
         });
 
         const hash = await walletClient.writeContract(request);
-        console.log(`Transaction receipt:`, hash);
-        setTimeout(async () => {
-            if (hash) {
-                const tx = await publicClient.simulateContract({
-                    address: tokenAddress,
+        console.log(`Group creation transaction:`, hash);
+
+        // Wait for group creation to be mined
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        // Function to handle token transfers with proper gas management
+        async function handleTokenTransfer(tokenAddr, amount, recipientAddr) {
+            const currentGasPrice = await publicClient.getGasPrice();
+            const adjustedGasPrice = currentGasPrice * 120n / 100n; // 20% premium
+
+            const { request } = await publicClient.simulateContract({
+                address: tokenAddr,
+                abi: tokenAbi,
+                functionName: 'transfer',
+                args: [recipientAddr, parseEther(amount)],
+                account: walletClient.account,
+                gas: await publicClient.estimateContractGas({
+                    address: tokenAddr,
                     abi: tokenAbi,
                     functionName: 'transfer',
-                    args: [address, parseEther('5000')],
-                    account
-                });
+                    args: [recipientAddr, parseEther(amount)],
+                    account: walletClient.account
+                }),
+                maxFeePerGas: adjustedGasPrice,
+                maxPriorityFeePerGas: adjustedGasPrice / 2n
+            });
 
+            const transferHash = await walletClient.writeContract(request);
+            await publicClient.waitForTransactionReceipt({ hash: transferHash });
+            return transferHash;
+        }
 
-                const hash2 = await walletClient.writeContract(tx.request);
-                console.log(hash2);
+        // Handle token transfers sequentially with proper delays
+        const tokenTransfers = [
+            { address: tokenAddress, amount: '5000' },
+            { address: usdtAddress, amount: '5000' }
+        ];
+
+        for (const [index, transfer] of tokenTransfers.entries()) {
+            try {
+                // Add delay between transactions
+                if (index > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+
+                const transferHash = await handleTokenTransfer(
+                    transfer.address,
+                    transfer.amount,
+                    address
+                );
+                console.log(`Token transfer ${index + 1} transaction:`, transferHash);
+            } catch (transferError) {
+                console.error(`Token transfer ${index + 1} failed:`, transferError);
+                // Continue with next transfer even if one fails
             }
-        }, 2000);
+        }
 
-        setTimeout(async () => {
-            if (hash) {
-                const tx = await publicClient.simulateContract({
-                    address: usdtAddress,
-                    abi: tokenAbi,
-                    functionName: 'transfer',
-                    args: [address, parseEther('5000')],
-                    account
-                });
-
-
-                const hash2 = await walletClient.writeContract(tx.request);
-                console.log(hash2);
-            }
-        }, 2000);
-
-        return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
-        ]));
+        return ctx.reply(
+            `Group "${groupName}" created successfully! Open the app to set monthly contribution`,
+            Markup.inlineKeyboard([
+                [
+                    Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
+                    Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
+                ]
+            ])
+        );
 
     } catch (error) {
         console.error('Error creating group:', error);
 
         let errorMessage = "An error occurred while creating the group. Please try again.";
 
-        if (error.message.includes("gas")) {
+        if (error.message?.includes("replacement transaction underpriced")) {
+            errorMessage = "Transaction failed due to network congestion. Please try again in a few moments.";
+        } else if (error.message?.includes("gas")) {
             errorMessage = "Transaction failed due to insufficient gas. Please try again with a higher gas limit.";
-        } else if (error.message.includes("revert")) {
-            if (error.shortMessage && error.shortMessage.includes("Already in group")) {
+        } else if (error.message?.includes("revert")) {
+            if (error.shortMessage?.includes("Already in group")) {
                 errorMessage = "This group has already been created. You can proceed to join it.";
             } else {
                 errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
@@ -319,7 +370,6 @@ async function handleCreateGroup(ctx) {
         }
 
         return ctx.reply(errorMessage);
-
     }
 }
 
@@ -612,13 +662,18 @@ async function handleJoinGroup(ctx) {
     const groupName = ctx.chat.title;
     const chatId = ctx.chat.id;
     const name = ctx.from.username;
-    console.log(ctx.chat.id);
-
+    console.log('Join attempt for chat ID:', chatId);
 
     try {
+        // Get user data and validate
         const user = await getUser(name);
         const address = user.address;
 
+        if (!address) {
+            throw new Error('User address not found');
+        }
+
+        // Check if user is already in group
         const data = await publicClient.readContract({
             address: contractAddress,
             abi: abi,
@@ -626,71 +681,120 @@ async function handleJoinGroup(ctx) {
             args: [String(address)]
         });
 
-
-
         if (data.includes(BigInt(chatId))) {
-            return ctx.reply(`${name}, you're already a member of this group. No need to join again! Check your app for more details`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
-            ]));
+            return ctx.reply(
+                `${name}, you're already a member of this group. No need to join again! Check your app for more details`,
+                Markup.inlineKeyboard([
+                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
+                ])
+            );
         }
 
+        // Get current gas price and add premium
+        const gasPrice = await publicClient.getGasPrice();
+        const gasPriceWithPremium = gasPrice * 120n / 100n; // 20% premium
+
+        // Join group with proper gas configuration
         const { request } = await publicClient.simulateContract({
             address: contractAddress,
             abi: abi,
             functionName: 'joinGroup',
-            args: [chatId, address]
+            args: [chatId, address],
+            account: walletClient.account,
+            gas: await publicClient.estimateContractGas({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'joinGroup',
+                args: [chatId, address],
+                account: walletClient.account
+            }),
+            maxFeePerGas: gasPriceWithPremium,
+            maxPriorityFeePerGas: gasPriceWithPremium / 2n
         });
 
         const hash = await walletClient.writeContract(request);
+        console.log('Join group transaction hash:', hash);
 
+        // Wait for join transaction to be mined
+        await publicClient.waitForTransactionReceipt({ hash });
 
-        // const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        // console.log(receipt);
+        // Helper function for token transfers
+        async function handleTokenTransfer(tokenAddr, amount, recipientAddr) {
+            const currentGasPrice = await publicClient.getGasPrice();
+            const adjustedGasPrice = currentGasPrice * 120n / 100n;
 
-
-        setTimeout(async () => {
-            const tx = await publicClient.simulateContract({
-                address: tokenAddress,
+            const { request } = await publicClient.simulateContract({
+                address: tokenAddr,
                 abi: tokenAbi,
                 functionName: 'transfer',
-                args: [address, parseEther('20000')],
-                account
+                args: [recipientAddr, parseEther(amount)],
+                account: walletClient.account,
+                gas: await publicClient.estimateContractGas({
+                    address: tokenAddr,
+                    abi: tokenAbi,
+                    functionName: 'transfer',
+                    args: [recipientAddr, parseEther(amount)],
+                    account: walletClient.account
+                }),
+                maxFeePerGas: adjustedGasPrice,
+                maxPriorityFeePerGas: adjustedGasPrice / 2n
             });
 
-            const txhash = await walletClient.writeContract(tx.request);
+            const transferHash = await walletClient.writeContract(request);
+            await publicClient.waitForTransactionReceipt({ hash: transferHash });
+            return transferHash;
+        }
 
+        // Handle token transfers sequentially
+        const tokenTransfers = [
+            { address: tokenAddress, amount: '5000' },
+            { address: usdtAddress, amount: '5000' }
+        ];
 
-        }, 2000);
+        for (const [index, transfer] of tokenTransfers.entries()) {
+            try {
+                // Add delay between transactions
+                if (index > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
 
-        setTimeout(async () => {
-            const tx = await publicClient.simulateContract({
-                address: usdtAddress,
-                abi: tokenAbi,
-                functionName: 'transfer',
-                args: [address, parseEther('20000')],
-                account
-            });
+                const transferHash = await handleTokenTransfer(
+                    transfer.address,
+                    transfer.amount,
+                    address
+                );
+                console.log(`Token transfer ${index + 1} hash:`, transferHash);
+            } catch (transferError) {
+                console.error(`Token transfer ${index + 1} failed:`, transferError);
+                // Continue with next transfer even if one fails
+            }
+        }
 
-            const txhash = await walletClient.writeContract(tx.request);
-
-
-        }, 2000);
-
-        return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
-        ]))
+        return ctx.reply(
+            `Welcome ${name}! You've successfully joined "${groupName}"`,
+            Markup.inlineKeyboard([
+                [
+                    Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
+                    Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
+                ]
+            ])
+        );
 
     } catch (error) {
         console.error('Error joining group:', error);
 
         let errorMessage = `Oops! We encountered an issue while trying to add ${name} to the group. `;
 
-        if (error.message.includes("gas")) {
+        if (error.message?.includes("replacement transaction underpriced")) {
+            errorMessage += "Transaction failed due to network congestion. Please try again in a few moments.";
+        } else if (error.message?.includes("gas")) {
             errorMessage += "It seems there might be a network congestion. Please try again in a few minutes.";
-        } else if (error.message.includes("revert")) {
+        } else if (error.message?.includes("revert")) {
             errorMessage += "The operation couldn't be completed due to contract restrictions. This could be because the group is full or you don't meet certain criteria to join.";
-        } else if (String(error.cause).includes("already in group")) {
+        } else if (String(error.cause)?.includes("already in group")) {
             errorMessage += "It looks like you're already a member of this group. No need to join again!";
+        } else if (error.message?.includes("User address not found")) {
+            errorMessage += "We couldn't find your wallet address. Please ensure you've connected your wallet.";
         } else {
             errorMessage += "We're not sure what went wrong. Please try again later or contact support if the issue persists.";
         }
