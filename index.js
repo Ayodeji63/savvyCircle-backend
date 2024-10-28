@@ -432,11 +432,6 @@ bot.action('select_ngns', async (ctx) => {
 Format: /save <amount>
 
 Example: /save 100</b>
-        
-        Member: <code>${user ? user.username : member}</code>
-        Amount: <b>${formattedAmount} NGNS</b>
-        
-        Great job on contributing to your savings goal! 🎉
                 `;
 
         return ctx.reply(message, Markup.inlineKeyboard([
@@ -490,10 +485,6 @@ Format: /save <amount>
 
 Example: /save 100</b>
         
-        Member: <code>${user ? user.username : member}</code>
-        Amount: <b>${formattedAmount} USDT</b>
-        
-        Great job on contributing to your savings goal! 🎉
                 `;
 
         return ctx.reply(message, Markup.inlineKeyboard([
