@@ -426,17 +426,24 @@ bot.action('select_ngns', async (ctx) => {
         const hash2 = await walletClient.writeContract(request);
         console.log(hash2);
 
+
+
         const message = `
-        <b>Group "${groupName}" savings token set successfully!. Open the app to start depositing</b>
-        <b>💵 Enter the amount you want to save in NGNS:
-Format: /save <amount>
+                <b>Group "${name}" savings token set successfully!. Open the app to start depositing</b>
+                <b>💵 Enter the amount you want to save in NGNS:
+        Format: /save <amount>
+        
+        Example: /save 100</b>
+                
+                        `;
 
-Example: /save 100</b>
-                `;
 
-        return ctx.reply(message, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
-        ]));
+        const keyboard = Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+            [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
+        ]);
+
+        await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
     } catch (error) {
         console.error('Error fetching savings:', error);
 
@@ -479,7 +486,7 @@ bot.action('select_usdt', async (ctx) => {
         console.log(hash2);
 
         const message = `
-        <b>Group "${groupName}" savings token set successfully!. Open the app to start depositing</b>
+        <b>Group "${name}" savings token set successfully!. Open the app to start depositing</b>
         <b>💵 Enter the amount you want to save in USDT:
 Format: /save <amount>
 
@@ -487,9 +494,16 @@ Example: /save 100</b>
         
                 `;
 
-        return ctx.reply(message, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
-        ]));
+
+        const keyboard = Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+            [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
+        ]);
+
+        await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
+
+
+
     } catch (error) {
         console.error('Error fetching savings:', error);
 
