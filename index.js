@@ -423,7 +423,7 @@ bot.action('select_ngns', async (ctx) => {
             args: [Number(chatId), tokenAddress]
         });
 
-        const hash2 = await walletClient.writeContract(tx.request);
+        const hash2 = await walletClient.writeContract(request);
         console.log(hash2);
 
         const message = `
@@ -480,7 +480,7 @@ bot.action('select_usdt', async (ctx) => {
             args: [Number(chatId), usdtAddress]
         });
 
-        const hash2 = await walletClient.writeContract(tx.request);
+        const hash2 = await walletClient.writeContract(request);
         console.log(hash2);
 
         const message = `
