@@ -9,6 +9,7 @@ import { tokenAbi, tokenAddress, usdtAddress } from './token.js';
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
 const bot = new Telegraf(process.env.TOKEN);
+bot.use(session());
 
 const PORT = process.env.PORT || 8000;
 
@@ -20,7 +21,7 @@ bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
 bot.command('mySavings', handleMyGroupSavings);
 bot.command('groupSavings', handleGroupSavings);
-bot.command('savingToken', handleSavingToken);
+bot.command('token', handleSavingToken);
 
 bot.on('new_chat_members', async (ctx) => {
     const newMembers = ctx.message.new_chat_members;
@@ -489,6 +490,13 @@ bot.action('select_ngns', async (ctx) => {
         const hash2 = await walletClient.writeContract(request);
         console.log(hash2);
 
+        // Store in session
+        ctx.session = {
+            ...ctx.session,
+            savingMode: true,
+            tokenType: 'NGNS',
+        };
+
         const message = `
         Group "${groupName}" savings token set successfully!. Open the app to start depositing
         💵 Enter the amount you want to save in NGNS:
@@ -541,6 +549,13 @@ bot.action('select_usdt', async (ctx) => {
         const hash2 = await walletClient.writeContract(request);
         console.log(hash2);
 
+        // Store in session
+        ctx.session = {
+            ...ctx.session,
+            savingMode: true,
+            tokenType: 'USDT',
+        };
+
         const message = `
         Group "${name}" savings token set successfully!. Open the app to start depositing
         💵 Enter the amount you want to save in USDT:
@@ -571,7 +586,7 @@ Example: /save 100
     }
 });
 
-bot.command('save', async (ctx) => {
+bot.command('amount', async (ctx) => {
     try {
         // Get the text after the command
         const text = ctx.message.text;
@@ -586,15 +601,16 @@ bot.command('save', async (ctx) => {
         const userId = ctx.from.id;
         const username = ctx.from.username;
         const chatId = ctx.chat.id;
+        const { tokenType } = ctx.session || {};
 
         // You can now use this amount for your saving logic
-        console.log(`User ${username} wants to save ${amount} USDT`);
+        console.log(`User ${username} wants to save ${amount} ${tokenType}`);
 
         // Example confirmation message with approve/reject buttons
         const message = `
 💰 Saving Confirmation
 
-Amount: ${amount} USDT
+Amount: ${amount} ${tokenType}
 User: @${username}
 
 Please confirm your transaction.
@@ -627,19 +643,56 @@ bot.action(/^approve_save_(.+)$/, async (ctx) => {
         const username = ctx.from.username;
         const chatId = ctx.chat.id;
 
+        const user = await getUser(username);
+        const address = user.address;
+
+        if (!address) {
+            throw new Error('User address not found');
+        }
+
+        // Get current gas price and add a premium
+        const gasPrice = await publicClient.getGasPrice();
+        const gasPriceWithPremium = gasPrice * 120n / 100n; // 20% premium
+
+        // Create group transaction with proper gas configuration
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'setMonthlyContribution',
+            args: [Number(chatId), parseEther(amount)],
+            account: walletClient.account,
+            gas: await publicClient.estimateContractGas({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'setMonthlyContribution',
+                args: [Number(chatId), parseEther(amount)],
+                account: walletClient.account
+            }),
+            maxFeePerGas: gasPriceWithPremium,
+            maxPriorityFeePerGas: gasPriceWithPremium / 2n
+        });
+
+        const hash = await walletClient.writeContract(request);
+        console.log(`Group creation transaction:`, hash);
+
+        // Wait for group creation to be mined
+        await publicClient.waitForTransactionReceipt({ hash });
+
         // Here you can implement your saving logic
         // For example, calling your contract or API
+        const { tokenType } = ctx.session || {};
 
         const message = `
 ✅ Saving Request Initiated
 
-Amount: ${amount} USDT
+Amount: ${amount} ${tokenType}
 Status: Processing
 
 Transaction completed.
 `;
 
         await ctx.editMessageText(message, { parse_mode: 'HTML' });
+        ctx.session = {};
 
     } catch (error) {
         console.error('Error processing approval:', error);
@@ -652,6 +705,7 @@ bot.action('cancel_save', async (ctx) => {
     try {
         await ctx.answerCbQuery();
         await ctx.editMessageText('❌ Saving request cancelled.', { parse_mode: 'HTML' });
+        ctx.session = {};
     } catch (error) {
         console.error('Error cancelling save:', error);
         await ctx.reply('An error occurred while cancelling.');
