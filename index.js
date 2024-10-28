@@ -4,7 +4,7 @@ import { getUser, getUserByAddress } from './controller/lib/getUser.js';
 import { formatEther, parseEther } from "viem";
 import { publicClient, walletClient, account } from './publicClient.js';
 import { abi, contractAddress } from './contractAbi.js';
-import { tokenAbi, tokenAddress } from './token.js';
+import { tokenAbi, tokenAddress, usdtAddress } from './token.js';
 // import express, { json } from "express";
 
 // Replace 'YOUR_BOT_TOKEN' with your actual bot token
@@ -44,7 +44,7 @@ bot.on('new_chat_members', async (ctx) => {
         ctx.reply(welcomeMessage, {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
             ])
         });
     }
@@ -104,7 +104,7 @@ Amount: <b>${formattedAmount} NGNS</b>
 Great job on contributing to your savings goal! 🎉
         `;
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -137,7 +137,7 @@ Great job on repaying back your loan! 🎉
         `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -168,7 +168,7 @@ async function handleLoanDistributedEvent(logs) {
             `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -184,7 +184,7 @@ async function handleLoanDistributedEvent(logs) {
 function handleSavvyCommand(ctx) {
     return ctx.reply('Ready to get savvy with your finances? Click below to open SavvyCircle:',
         Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
         ])
     );
 }
@@ -227,7 +227,7 @@ Keep growing together! 🌱💰
         `;
 
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('View Details in SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+            [Markup.button.url('View Details in SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
         ]);
 
         await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
@@ -285,7 +285,7 @@ async function handleCreateGroup(ctx) {
                 console.log(hash2);
 
                 return ctx.reply(`Group "${groupName}" created successfully!. Open the app to set monthly contribution`, Markup.inlineKeyboard([
-                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
+                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
                 ]));
             }
         }, 3000);
@@ -338,7 +338,7 @@ Total Savings: <b>${totalSavings} NGNS</b>
 Keep up the great work! 🎉
         `;
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')],
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
         ]);
 
@@ -369,27 +369,19 @@ async function handleSavingToken(ctx) {
     const name = ctx.from.username;
 
     try {
+
         const user = await getUser(name);
         const address = user.address;
 
-        const data = await publicClient.readContract({
-            address: contractAddress,
-            abi: abi,
-            functionName: 'getMemeberSavings',
-            args: [Number(chatId), address]
-        });
-
-        const totalSavings = formatEther(data);
-        console.log(`Total savings is`, totalSavings);
-
         const message = `
-<b>💰 Select an option for ${groupName} saving token 💰</b>
+💰 Select an option for ${groupName} saving token 💰
         `;
+
+        // Changed to callback_data buttons instead of text buttons
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.text('Naira (NGNS)')], [Markup.button.text('US Dollar (USDT)')]
-
+            [Markup.button.callback('Naira (NGNS)', 'select_ngns')],
+            [Markup.button.callback('US Dollar (USDT)', 'select_usdt')]
         ]);
-
 
         await ctx.reply(message, { parse_mode: 'HTML', ...keyboard });
 
@@ -409,6 +401,207 @@ async function handleSavingToken(ctx) {
         await ctx.reply(errorMessage);
     }
 }
+
+// Add these handlers in your bot setup
+bot.action('select_ngns', async (ctx) => {
+    // Handle NGNS selection
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    await ctx.answerCbQuery();
+    console.log("You picked NGNS");
+
+    try {
+        const user = await getUser(name);
+        const address = user.address;
+
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'setGroupContributionToken',
+            args: [Number(chatId), tokenAddress]
+        });
+
+        const hash2 = await walletClient.writeContract(tx.request);
+        console.log(hash2);
+
+        const message = `
+        <b>Group "${groupName}" savings token set successfully!. Open the app to start depositing</b>
+        <b>💵 Enter the amount you want to save in NGNS:
+Format: /save <amount>
+
+Example: /save 100</b>
+        
+        Member: <code>${user ? user.username : member}</code>
+        Amount: <b>${formattedAmount} NGNS</b>
+        
+        Great job on contributing to your savings goal! 🎉
+                `;
+
+        return ctx.reply(message, Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
+        ]));
+    } catch (error) {
+        console.error('Error fetching savings:', error);
+
+        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
+
+        if (error.message.includes("user not found")) {
+            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
+        } else if (error.message.includes("not a member")) {
+            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
+        } else {
+            errorMessage += "Please try again later or contact support if the issue persists.";
+        }
+
+        await ctx.reply(errorMessage);
+    }
+});
+
+bot.action('select_usdt', async (ctx) => {
+    // Handle USDT selection
+    await ctx.answerCbQuery();
+    console.log("You picked USDT");
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    await ctx.answerCbQuery();
+
+    try {
+        const user = await getUser(name);
+        const address = user.address;
+
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'setGroupContributionToken',
+            args: [Number(chatId), usdtAddress]
+        });
+
+        const hash2 = await walletClient.writeContract(tx.request);
+        console.log(hash2);
+
+        const message = `
+        <b>Group "${groupName}" savings token set successfully!. Open the app to start depositing</b>
+        <b>💵 Enter the amount you want to save in USDT:
+Format: /save <amount>
+
+Example: /save 100</b>
+        
+        Member: <code>${user ? user.username : member}</code>
+        Amount: <b>${formattedAmount} USDT</b>
+        
+        Great job on contributing to your savings goal! 🎉
+                `;
+
+        return ctx.reply(message, Markup.inlineKeyboard([
+            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
+        ]));
+    } catch (error) {
+        console.error('Error fetching savings:', error);
+
+        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
+
+        if (error.message.includes("user not found")) {
+            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
+        } else if (error.message.includes("not a member")) {
+            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
+        } else {
+            errorMessage += "Please try again later or contact support if the issue persists.";
+        }
+
+        await ctx.reply(errorMessage);
+    }
+});
+
+bot.command('save', async (ctx) => {
+    try {
+        // Get the text after the command
+        const text = ctx.message.text;
+        // Split the text to get the amount
+        const [command, amount] = text.split(' ');
+
+        // Validate the amount
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            return ctx.reply('Please enter a valid amount.\nExample: /save 100');
+        }
+
+        const userId = ctx.from.id;
+        const username = ctx.from.username;
+        const chatId = ctx.chat.id;
+
+        // You can now use this amount for your saving logic
+        console.log(`User ${username} wants to save ${amount} USDT`);
+
+        // Example confirmation message with approve/reject buttons
+        const message = `
+💰 Saving Confirmation
+
+Amount: ${amount} USDT
+User: @${username}
+
+Please confirm your transaction.
+`;
+
+        const keyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.callback('✅ Approve', `approve_save_${amount}`),
+                Markup.button.callback('❌ Cancel', 'cancel_save')
+            ]
+        ]);
+
+        await ctx.reply(message, {
+            parse_mode: 'HTML',
+            ...keyboard
+        });
+
+    } catch (error) {
+        console.error('Error processing save command:', error);
+        await ctx.reply('An error occurred while processing your request. Please try again.');
+    }
+});
+
+// Handle the approval
+bot.action(/^approve_save_(.+)$/, async (ctx) => {
+    try {
+        await ctx.answerCbQuery();
+
+        const amount = ctx.match[1]; // Get the amount from the callback data
+        const username = ctx.from.username;
+        const chatId = ctx.chat.id;
+
+        // Here you can implement your saving logic
+        // For example, calling your contract or API
+
+        const message = `
+✅ Saving Request Initiated
+
+Amount: ${amount} USDT
+Status: Processing
+
+Please complete the transaction in your wallet.
+`;
+
+        await ctx.editMessageText(message, { parse_mode: 'HTML' });
+
+    } catch (error) {
+        console.error('Error processing approval:', error);
+        await ctx.reply('An error occurred while processing your approval. Please try again.');
+    }
+});
+
+// Handle cancellation
+bot.action('cancel_save', async (ctx) => {
+    try {
+        await ctx.answerCbQuery();
+        await ctx.editMessageText('❌ Saving request cancelled.', { parse_mode: 'HTML' });
+    } catch (error) {
+        console.error('Error cancelling save:', error);
+        await ctx.reply('An error occurred while cancelling.');
+    }
+});
 
 async function handleJoinGroup(ctx) {
     const groupName = ctx.chat.title;
@@ -432,7 +625,7 @@ async function handleJoinGroup(ctx) {
 
         if (data.includes(BigInt(chatId))) {
             return ctx.reply(`${name}, you're already a member of this group. No need to join again! Check your app for more details`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle')]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
             ]));
         }
 
@@ -462,7 +655,7 @@ async function handleJoinGroup(ctx) {
             const txhash = await walletClient.writeContract(tx.request);
 
             return ctx.reply(`Welcome ${name}! You've successfully joined "${groupName}"`, Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyCircleBot/SavvyCircle'), Markup.button.url('View Transaction', `https://sepolia.basescan.org/tx/${hash}`)]
+                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)]
             ]))
         }, 2000);
 

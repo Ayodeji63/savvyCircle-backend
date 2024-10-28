@@ -1,4 +1,4 @@
-export const tokenAddress = "0xF998be67eA24466978a102D9f4aD03bf27aEEeD3";
+export const tokenAddress = "0x51fFE9c39Cd46646B9225E6dD3A298E9c1946Dd2";
 export const tokenAbi = [
     {
         type: "constructor",
@@ -254,3 +254,5 @@ export const tokenAbi = [
         inputs: [{ name: "account", type: "address", internalType: "address" }],
     },
 ];
+
+export const usdtAddress = "0x69C27fa8C6975E5Ae3eb41B83C1d840bDD1ec4ec"
