@@ -467,124 +467,97 @@ async function handleSavingToken(ctx) {
 }
 
 // Add these handlers in your bot setup
-bot.action('select_ngns', async (ctx) => {
-    // Handle NGNS selection
+// Token configuration
+const TOKENS = {
+    NGNS: {
+        address: tokenAddress,
+        symbol: 'NGNS'
+    },
+    USDT: {
+        address: usdtAddress,
+        symbol: 'USDT'
+    }
+};
+
+// Helper function to format transaction message
+const formatSuccessMessage = (groupName, tokenSymbol) => `
+🎉 Success! Group "${groupName}" savings token has been set to ${tokenSymbol}
+
+💰 Ready to start saving? Use the command below:
+─────────────────────
+📝 Format: /save <amount>
+💡 Example: /save 100
+
+Your savings will be in ${tokenSymbol}
+`;
+
+// Helper function to format error message
+const formatErrorMessage = (error) => {
+    const baseMessage = "Oops! We encountered an issue while processing your request.";
+
+    if (error.message.includes("user not found")) {
+        return `${baseMessage}\n\n❌ It seems you're not registered yet.\n💡 Please use /join to register first.`;
+    }
+    if (error.message.includes("not a member")) {
+        return `${baseMessage}\n\n❌ You're not a member of this group.\n💡 Use /join to become a member.`;
+    }
+    return `${baseMessage}\n\nPlease try again later or contact support if the issue persists.`;
+};
+
+// Helper function to handle token selection
+const handleTokenSelection = async (ctx, tokenType) => {
+    await ctx.answerCbQuery();
+    console.log(`Token selected: ${tokenType}`);
+
     const groupName = ctx.chat.title;
     const chatId = ctx.chat.id;
-    const name = ctx.from.username;
-
-    await ctx.answerCbQuery();
-    console.log("You picked NGNS");
+    const username = ctx.from.username;
 
     try {
-        const user = await getUser(name);
-        const address = user.address;
+        const user = await getUser(username);
 
+        // Simulate contract interaction
         const { request } = await publicClient.simulateContract({
             address: contractAddress,
             abi: abi,
             functionName: 'setGroupContributionToken',
-            args: [Number(chatId), tokenAddress]
+            args: [Number(chatId), TOKENS[tokenType].address]
         });
 
-        const hash2 = await walletClient.writeContract(request);
-        console.log(hash2);
+        // Execute contract transaction
+        const txHash = await walletClient.writeContract(request);
+        console.log('Transaction hash:', txHash);
 
-        // Store in session
+        // Update session
         ctx.session = {
             ...ctx.session,
             savingMode: true,
-            tokenType: 'NGNS',
+            tokenType,
         };
 
-        const message = `
-        Group "${groupName}" savings token set successfully!. Open the app to start depositing
-        💵 Enter the amount you want to save in NGNS:
-Format: /save <amount>
+        // Create inline keyboard
+        const inlineKeyboard = Markup.inlineKeyboard([
+            [
+                Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
+                Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${txHash}`)
+            ]
+        ]);
 
-Example: /save 100
-                `;
+        // Send success message
+        return ctx.reply(
+            formatSuccessMessage(groupName, TOKENS[tokenType].symbol),
+            inlineKeyboard
+        );
 
-        return ctx.reply(message, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
-        ]));
     } catch (error) {
-        console.error('Error fetching savings:', error);
-
-        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
-
-        if (error.message.includes("user not found")) {
-            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
-        } else if (error.message.includes("not a member")) {
-            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
-        } else {
-            errorMessage += "Please try again later or contact support if the issue persists.";
-        }
-
-        await ctx.reply(errorMessage);
+        console.error('Token selection error:', error);
+        return ctx.reply(formatErrorMessage(error));
     }
-});
+};
 
-bot.action('select_usdt', async (ctx) => {
-    // Handle USDT selection
-    await ctx.answerCbQuery();
-    console.log("You picked USDT");
-    const groupName = ctx.chat.title;
-    const chatId = ctx.chat.id;
-    const name = ctx.from.username;
-
-    await ctx.answerCbQuery();
-
-    try {
-        const user = await getUser(name);
-        const address = user.address;
-
-        const { request } = await publicClient.simulateContract({
-            address: contractAddress,
-            abi: abi,
-            functionName: 'setGroupContributionToken',
-            args: [Number(chatId), usdtAddress]
-        });
-
-        const hash2 = await walletClient.writeContract(request);
-        console.log(hash2);
-
-        // Store in session
-        ctx.session = {
-            ...ctx.session,
-            savingMode: true,
-            tokenType: 'USDT',
-        };
-
-        const message = `
-        Group "${name}" savings token set successfully!. Open the app to start depositing
-        💵 Enter the amount you want to save in USDT:
-Format: /save <amount>
-
-Example: /save 100
-        
-                `;
-
-
-        return ctx.reply(message, Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'), Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash2}`)]
-        ]));
-    } catch (error) {
-        console.error('Error fetching savings:', error);
-
-        let errorMessage = "Oops! We encountered an issue while fetching your savings information. ";
-
-        if (error.message.includes("user not found")) {
-            errorMessage += "It seems you're not registered in our system. Please use the /join command to join the group first.";
-        } else if (error.message.includes("not a member")) {
-            errorMessage += "You don't appear to be a member of this savings group. Use the /join command to become a member.";
-        } else {
-            errorMessage += "Please try again later or contact support if the issue persists.";
-        }
-
-        await ctx.reply(errorMessage);
-    }
-});
+// Token selection action handlers
+bot.action('select_ngns', (ctx) => handleTokenSelection(ctx, 'NGNS'));
+bot.action('select_usdt', (ctx) => handleTokenSelection(ctx, 'USDT'));
 
 bot.command('amount', async (ctx) => {
     try {
@@ -683,10 +656,10 @@ bot.action(/^approve_save_(.+)$/, async (ctx) => {
         const { tokenType } = ctx.session || {};
 
         const message = `
-✅ Saving Request Initiated
+✅ Set Savings Amount Request Initiated
 
 Amount: ${amount} ${tokenType}
-Status: Processing
+Status: Completed
 
 Transaction completed.
 `;
