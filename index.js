@@ -19,8 +19,8 @@ const PORT = process.env.PORT || 8000;
 bot.command('savvy', handleSavvyCommand);
 bot.command('create', handleCreateGroup);
 bot.command('join', handleJoinGroup);
-bot.command('mySavings', handleMyGroupSavings);
-bot.command('groupSavings', handleGroupSavings);
+bot.command('mysavings', handleMyGroupSavings);
+bot.command('groupsavings', handleGroupSavings);
 bot.command('token', handleSavingToken);
 bot.command('disburse', handleDisburse);
 
@@ -38,8 +38,42 @@ bot.on('new_chat_members', async (ctx) => {
   /create - Create a new savings group
   /join - Join an existing group
   /help - Show available commands and info
-  /mySavings - Show user total savings.
-  /groupSavings - Show group savings
+  /mysavings - Show user total savings.
+  /groupsavings - Show group savings
+  /token - Set group saving token
+  /amount - Set group saving amount
+  /disburse - Disburse loan for eligible members.
+  
+  Let's get savvy with our finances together! 💰
+      `;
+
+        ctx.reply(welcomeMessage, {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+                [Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
+            ])
+        });
+    }
+});
+
+bot.command('help', async (ctx) => {
+    const newMembers = ctx.message.new_chat_members;
+    const botUser = await ctx.telegram.getMe();
+
+    if (newMembers.some(member => member.id === botUser.id)) {
+        const welcomeMessage = `
+  Hello everyone! 👋 I'm SavvyCircle Bot, here to help you manage your group savings and loans.
+  
+  Here are some commands to get you started:
+  /savvy - Open SavvyCircle app
+  /create - Create a new savings group
+  /join - Join an existing group
+  /help - Show available commands and info
+  /mysavings - Show user total savings.
+  /groupsavings - Show group savings
+  /token - Set group saving token
+  /amount - Set group saving amount
+  /disburse - Disburse loan for eligible members.
   
   Let's get savvy with our finances together! 💰
       `;
@@ -98,11 +132,26 @@ async function handleSavingsDepositedEvent(logs) {
             const formattedAmount = formatEther(amount);
             const user = await getUserByAddress(member);
 
+            const data = await publicClient.readContract({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'groups',
+                args: [Number(chatId)]
+            });
+
+            console.log('Group Data is given as', data);
+            let sym = NGNS;
+            if (data?.groupToken == TOKENS.NGNS.address) {
+                sym = NGNS
+            } else if (data?.groupToken == TOKENS.USDT.address) {
+                sym = USDT
+            }
+
             const message = `
 <b>New Savings Deposit! 💰</b>
 
 Member: <code>${user ? user.username : member}</code>
-Amount: <b>${formattedAmount} NGNS</b>
+Amount: <b>${formattedAmount} ${sym}</b>
 
 Great job on contributing to your savings goal! 🎉
         `;
@@ -130,11 +179,26 @@ async function handleLoanRepaymentEvent(logs) {
             const user = await getUserByAddress(borrower);
             console.log(user)
 
+            const data = await publicClient.readContract({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'groups',
+                args: [Number(chatId)]
+            });
+
+            console.log('Group Data is given as', data);
+            let sym = NGNS;
+            if (data?.groupToken == TOKENS.NGNS.address) {
+                sym = NGNS
+            } else if (data?.groupToken == TOKENS.USDT.address) {
+                sym = USDT
+            }
+
             const message = `
 <b>💰💰 New Loan Repayment! 💰💰</b>
 
 Member: <code>${user ? user.username : borrower}</code>
-Amount: <b>${formattedAmount} NGNS</b>
+Amount: <b>${formattedAmount} ${sym}</b>
 
 Great job on repaying back your loan! 🎉
         `;
