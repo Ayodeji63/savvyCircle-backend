@@ -141,11 +141,11 @@ async function handleSavingsDepositedEvent(logs) {
             });
 
             console.log('Group Data is given as', data);
-            let sym = NGNS;
+            let sym = 'NGNS';
             if (data[15] == TOKENS.NGNS.address) {
-                sym = NGNS
+                sym = TOKENS.NGNS.symbol
             } else if (data[15] == TOKENS.USDT.address) {
-                sym = USDT
+                sym = TOKENS.USDT.symbol
             }
 
             const message = `
@@ -188,11 +188,11 @@ async function handleLoanRepaymentEvent(logs) {
             });
 
             console.log('Group Data is given as', data);
-            let sym = NGNS;
+            let sym = 'NGNS';
             if (data[15] == TOKENS.NGNS.address) {
-                sym = NGNS
+                sym = TOKENS.NGNS.symbol
             } else if (data[15] == TOKENS.USDT.address) {
-                sym = USDT
+                sym = TOKENS.USDT.symbol
             }
 
             const message = `
