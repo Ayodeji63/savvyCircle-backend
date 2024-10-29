@@ -1,4 +1,4 @@
-import { Telegraf, Markup, session } from 'telegraf';
+import { Telegraf, Markup, sess } from 'telegraf';
 import { getUser, getUserByAddress } from './controller/lib/getUser.js';
 // import { publicClient, walletClient, account } from "../../publicClient.js";
 import { formatEther, parseEther } from "viem";
@@ -22,6 +22,8 @@ bot.command('join', handleJoinGroup);
 bot.command('mySavings', handleMyGroupSavings);
 bot.command('groupSavings', handleGroupSavings);
 bot.command('token', handleSavingToken);
+bot.command('disburse', handleDisburse);
+
 
 bot.on('new_chat_members', async (ctx) => {
     const newMembers = ctx.message.new_chat_members;
@@ -45,7 +47,7 @@ bot.on('new_chat_members', async (ctx) => {
         ctx.reply(welcomeMessage, {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
-                [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
+                [Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
             ])
         });
     }
@@ -105,7 +107,7 @@ Amount: <b>${formattedAmount} NGNS</b>
 Great job on contributing to your savings goal! 🎉
         `;
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+                [Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -138,7 +140,7 @@ Great job on repaying back your loan! 🎉
         `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+                [Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -169,7 +171,7 @@ async function handleLoanDistributedEvent(logs) {
             `;
 
             const keyboard = Markup.inlineKeyboard([
-                [Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+                [Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${transactionHash}`), Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
             ]);
 
@@ -185,7 +187,7 @@ async function handleLoanDistributedEvent(logs) {
 function handleSavvyCommand(ctx) {
     return ctx.reply('Ready to get savvy with your finances? Click below to open SavvyCircle:',
         Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
+            [Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
         ])
     );
 }
@@ -347,11 +349,67 @@ async function handleCreateGroup(ctx) {
             `Group "${groupName}" created successfully! Open the app to set monthly contribution`,
             Markup.inlineKeyboard([
                 [
-                    Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
-                    Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
+                    Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
+                    Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
                 ]
             ])
         );
+
+    } catch (error) {
+        console.error('Error creating group:', error);
+
+        let errorMessage = "An error occurred while creating the group. Please try again.";
+
+        if (error.message?.includes("replacement transaction underpriced")) {
+            errorMessage = "Transaction failed due to network congestion. Please try again in a few moments.";
+        } else if (error.message?.includes("gas")) {
+            errorMessage = "Transaction failed due to insufficient gas. Please try again with a higher gas limit.";
+        } else if (error.message?.includes("revert")) {
+            if (error.shortMessage?.includes("Already in group")) {
+                errorMessage = "This group has already been created. You can proceed to join it.";
+            } else {
+                errorMessage = "Transaction reverted. Please check contract conditions and parameters.";
+            }
+        }
+
+        return ctx.reply(errorMessage);
+    }
+}
+
+async function handleDisburse(ctx) {
+    const groupName = ctx.chat.title;
+    const chatId = ctx.chat.id;
+    const name = ctx.from.username;
+
+    try {
+
+        // Get current gas price and add a premium
+        const gasPrice = await publicClient.getGasPrice();
+        const gasPriceWithPremium = gasPrice * 120n / 100n; // 20% premium
+
+        // Create group transaction with proper gas configuration
+        const { request } = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'distributeLoanForGroup',
+            args: [Number(chatId)],
+            account: walletClient.account,
+            gas: await publicClient.estimateContractGas({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'distributeLoanForGroup',
+                args: [Number(chatId)],
+                account: walletClient.account
+            }),
+            maxFeePerGas: gasPriceWithPremium,
+            maxPriorityFeePerGas: gasPriceWithPremium / 2n
+        });
+
+        const hash = await walletClient.writeContract(request);
+        console.log(`Group creation transaction:`, hash);
+
+        // Wait for group creation to be mined
+        await publicClient.waitForTransactionReceipt({ hash });
 
     } catch (error) {
         console.error('Error creating group:', error);
@@ -402,7 +460,7 @@ Total Savings: <b>${totalSavings} NGNS</b>
 Keep up the great work! 🎉
         `;
         const keyboard = Markup.inlineKeyboard([
-            [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
+            [Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')],
 
         ]);
 
@@ -485,8 +543,8 @@ const formatSuccessMessage = (groupName, tokenSymbol) => `
 
 💰 Ready to start saving? Use the command below:
 ─────────────────────
-📝 Format: /save <amount>
-💡 Example: /save 100
+📝 Format: /amount <amount>
+💡 Example: /amount 100
 
 Your savings will be in ${tokenSymbol}
 `;
@@ -530,8 +588,6 @@ const handleTokenSelection = async (ctx, tokenType) => {
 
         // Update session
         ctx.session = {
-            ...ctx.session,
-            savingMode: true,
             tokenType,
         };
 
@@ -712,7 +768,7 @@ async function handleJoinGroup(ctx) {
             return ctx.reply(
                 `${name}, you're already a member of this group. No need to join again! Check your app for more details`,
                 Markup.inlineKeyboard([
-                    [Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
+                    [Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk')]
                 ])
             );
         }
@@ -801,8 +857,8 @@ async function handleJoinGroup(ctx) {
             `Welcome ${name}! You've successfully joined "${groupName}"`,
             Markup.inlineKeyboard([
                 [
-                    Markup.button.url('Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
-                    Markup.button.url('View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
+                    Markup.button.url('🏦 Open SavvyCircle', 'https://t.me/SavvyLiskBot/savvyLisk'),
+                    Markup.button.url('🔍 View Transaction', `https://sepolia-blockscout.lisk.com/tx/${hash}`)
                 ]
             ])
         );
