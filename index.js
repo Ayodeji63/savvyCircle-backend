@@ -132,6 +132,7 @@ async function handleSavingsDepositedEvent(logs) {
             const formattedAmount = formatEther(amount);
             const user = await getUserByAddress(member);
 
+
             const data = await publicClient.readContract({
                 address: contractAddress,
                 abi: abi,
@@ -141,9 +142,9 @@ async function handleSavingsDepositedEvent(logs) {
 
             console.log('Group Data is given as', data);
             let sym = NGNS;
-            if (data?.groupToken == TOKENS.NGNS.address) {
+            if (data[15] == TOKENS.NGNS.address) {
                 sym = NGNS
-            } else if (data?.groupToken == TOKENS.USDT.address) {
+            } else if (data[15] == TOKENS.USDT.address) {
                 sym = USDT
             }
 
@@ -188,9 +189,9 @@ async function handleLoanRepaymentEvent(logs) {
 
             console.log('Group Data is given as', data);
             let sym = NGNS;
-            if (data?.groupToken == TOKENS.NGNS.address) {
+            if (data[15] == TOKENS.NGNS.address) {
                 sym = NGNS
-            } else if (data?.groupToken == TOKENS.USDT.address) {
+            } else if (data[15] == TOKENS.USDT.address) {
                 sym = USDT
             }
 
