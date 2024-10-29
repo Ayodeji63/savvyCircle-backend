@@ -226,11 +226,26 @@ async function handleLoanDistributedEvent(logs) {
             const formattedAmount = formatEther(String(amount));
             const user = await getUserByAddress(borrower);
             console.log(user);
+            const data = await publicClient.readContract({
+                address: contractAddress,
+                abi: abi,
+                functionName: 'groups',
+                args: [Number(chatId)]
+            });
+
+            console.log('Group Data is given as', data);
+            let sym = 'NGNS';
+            if (data[15] == TOKENS.NGNS.address) {
+                sym = TOKENS.NGNS.symbol
+            } else if (data[15] == TOKENS.USDT.address) {
+                sym = TOKENS.USDT.symbol
+            }
+
             const message = `
     <b>💰💰 New Loan Distributed! 💰💰</b>
     
     Member: <code>${user ? user.username : borrower}</code>
-    Amount: <b>${formattedAmount} NGNS</b>
+    Amount: <b>${formattedAmount} ${sym}</b>
     
     Loans given to ${user ? user.username : borrower}! 🎉
             `;
@@ -285,10 +300,26 @@ async function handleGroupSavings(ctx) {
         //     args: [Number(chatId)]
         // });
 
+        const groupData = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'groups',
+            args: [Number(chatId)]
+        });
+
+        console.log('Group Data is given as', groupData);
+        let sym = 'NGNS';
+        if (groupData[15] == TOKENS.NGNS.address) {
+            sym = TOKENS.NGNS.symbol
+        } else if (groupData[15] == TOKENS.USDT.address) {
+            sym = TOKENS.USDT.symbol
+        }
+
+
         const message = `
 <b>📊 Group Savings Summary for ${groupName} 📊</b>
 
-Total Group Savings: <b>${totalSavings} NGNS</b>
+Total Group Savings: <b>${totalSavings} ${sym}</b>
 Number of Members: <b>${2}</b>
 
 Keep growing together! 🌱💰
@@ -516,11 +547,26 @@ async function handleMyGroupSavings(ctx) {
         const totalSavings = formatEther(data);
         console.log(`Total savings is`, totalSavings);
 
+        const groupData = await publicClient.readContract({
+            address: contractAddress,
+            abi: abi,
+            functionName: 'groups',
+            args: [Number(chatId)]
+        });
+
+        console.log('Group Data is given as', groupData);
+        let sym = 'NGNS';
+        if (groupData[15] == TOKENS.NGNS.address) {
+            sym = TOKENS.NGNS.symbol
+        } else if (groupData[15] == TOKENS.USDT.address) {
+            sym = TOKENS.USDT.symbol
+        }
+
         const message = `
 <b>💰 Your Savings in ${groupName} 💰</b>
 
 Member: <code>${name}</code>
-Total Savings: <b>${totalSavings} NGNS</b>
+Total Savings: <b>${totalSavings} ${sym}</b>
 
 Keep up the great work! 🎉
         `;
